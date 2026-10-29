@@ -9,9 +9,7 @@
 - [ ] 22 alumnas activas sin RUT/ficha (se piden por el formulario).
 
 ## Por construir (decide Cristian el orden)
-- [ ] **Mercado Pago**: link de pago por mensualidad con `external_reference = ID_Mensualidad`; un activador cada 15–30 min
-      consulta `GET /v1/payments/search?external_reference=…` y marca Pagado. Access Token en Propiedades del script (nunca en la hoja ni en el repo).
-- [ ] **Cartola BancoEstado**: subir el Excel de la cartola y que la web proponga a qué mensualidad corresponde cada abono (monto, fecha, nombre); Cristian confirma.
+- [ ] **Mejorar la parte financiera** (prioridad). Paso 1 hecho: Mensualidades y Caja juntas en Finanzas.
 - [ ] **Portal de apoderados** (etapa 2): cada apoderado ve solo asistencia y pagos de su hija. Requiere decidir cómo se identifican (correo Gmail en la ficha).
 - [ ] Estadísticas por jugadora y partido (hoja Estadisticas ya creada, vacía).
 - [ ] Vincular el Formulario de Google a Kraken_BD y agregarle: teléfono, correo, autorización de imagen, talla.
@@ -19,3 +17,4 @@
 ## Hecho
 - v1.0: migración del Excel (nov-2023 → oct-2026) a Kraken_BD con IDs; web con Inicio, Alumnas, Mensualidades, Asistencia, Caja, Torneos, Inscripciones, Más registros, Configuración.
 - v1.1: orden y filtro tipo Excel en todas las tablas; actualizador único desde GitHub.
+- v1.2: Mensualidades y Caja pasan a ser pestañas de una sola sección **Finanzas**.

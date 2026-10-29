@@ -38,7 +38,7 @@ Cristian no es técnico: háblale en español simple, sin jerga, y explícale lo
 
 ## Web (src/)
 - `Api.gs`: funciones `api_*` llamadas con `google.script.run`; siempre devuelven `{ok, data}` / `{ok:false, error}` y objetos sin `Date`.
-- `App.html`: JS sin framework. Vistas en `R.<vista>`. Toda tabla con `<thead>` recibe sola orden + filtro tipo Excel
+- `App.html`: JS sin framework. Vistas en `R.<vista>`. Finanzas (`R.finanzas`) agrupa las pestañas Mensualidades y Caja (`S.tfin`); `ir(mensualidades|caja)` abre Finanzas en esa pestaña. Toda tabla con `<thead>` recibe sola orden + filtro tipo Excel
   (`mejorarTablas`); para que una celda ordene/filtre por un valor limpio, ponle `data-v`.
 - Estilo: colores del logo (morado `--kr-*`), fuentes Outfit + Inter. Responsive (menú lateral se oculta bajo 820px).
 

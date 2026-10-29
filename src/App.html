@@ -52,8 +52,8 @@ function ic(n) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentCol
 
 /* ---------- navegación ---------- */
 var VISTAS = [
-  ['inicio', 'Inicio', 'home'], ['alumnas', 'Alumnas', 'users'], ['mensualidades', 'Mensualidades', 'cash'],
-  ['asistencia', 'Asistencia', 'check'], ['caja', 'Caja', 'box'], ['torneos', 'Torneos', 'trophy'],
+  ['inicio', 'Inicio', 'home'], ['alumnas', 'Alumnas', 'users'], ['finanzas', 'Finanzas', 'cash'],
+  ['asistencia', 'Asistencia', 'check'], ['torneos', 'Torneos', 'trophy'],
   ['sep'], ['inscripciones', 'Inscripciones', 'inbox'], ['mas', 'Más registros', 'more'], ['config', 'Configuración', 'gear']
 ];
 function pintarNav() {
@@ -64,7 +64,10 @@ function pintarNav() {
   }).join('');
   $$('#nav a').forEach(function (a) { a.onclick = function (e) { e.preventDefault(); ir(a.dataset.v); }; });
 }
+// Mensualidades y Caja son pestañas de Finanzas: ir('caja') abre Finanzas en esa pestaña.
+var TABS_FIN = [['mensualidades', 'Mensualidades'], ['caja', 'Caja']];
 function ir(v, arg) {
+  if (v === 'mensualidades' || v === 'caja') { S.tfin = v; v = 'finanzas'; }
   S.view = v; pintarNav(); $('#side').classList.remove('open');
   window.scrollTo(0, 0);
   (R[v] || R.inicio)(arg);
@@ -367,14 +370,22 @@ function nomina() {
   };
 }
 
+/* ---------- FINANZAS (pestañas Mensualidades y Caja) ---------- */
+R.finanzas = function () { S.tfin = S.tfin || 'mensualidades'; R[S.tfin](); };
+function tabsFin() {
+  return '<div class="tabs" id="fin-t">' + TABS_FIN.map(function (t) { return '<button data-tf="' + t[0] + '" class="' + (S.tfin === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('') + '</div>';
+}
+function enlazarTabsFin() { $$('#fin-t button').forEach(function (b) { b.onclick = function () { S.tfin = b.dataset.tf; R.finanzas(); }; }); }
+
 /* ---------- MENSUALIDADES ---------- */
 R.mensualidades = function () {
+  S.tfin = 'mensualidades';
   S.fm = S.fm || { filtro: 'todas', q: '' };
   cargando();
   api('api_mensualidades', S.mes).then(function (d) {
     var esperado = 0, cobrado = 0, nDeuda = 0;
     d.filas.forEach(function (f) { cobrado += Number(f.pagado || 0); if (f.estado === 'Pagado' || f.estado === 'Pendiente' || f.estado === 'Promete pagar') esperado += Number(f.esperado || f.pagado || 0); if (f.estado === 'Pendiente' || f.estado === 'Promete pagar') nDeuda++; });
-    var h = cabecera('Mensualidades', 'Pago dentro de los primeros ' + d.diaLimite + ' días del mes', selectorMes('mm') + '<button class="btn" id="btn-deudas">Todas las deudas</button>');
+    var h = cabecera('Finanzas', 'Mensualidades · pago dentro de los primeros ' + d.diaLimite + ' días del mes', selectorMes('mm') + '<button class="btn" id="btn-deudas">Todas las deudas</button>') + tabsFin();
     if (d.faltantes.length) {
       h += '<div class="note warn row" style="margin-bottom:16px"><span><b>' + d.faltantes.length + '</b> alumnas activas no tienen mensualidad en ' + mesLabel(d.mes) + (d.filas.length ? ': ' + esc(d.faltantes.slice(0, 6).map(function (f) { return f.alumna; }).join(', ')) + (d.faltantes.length > 6 ? '…' : '') : '') + '.</span><button class="btn pri sm right" id="gen-mes">Crear ' + (d.filas.length ? 'las que faltan' : 'mensualidades del mes') + '</button></div>';
     }
@@ -388,6 +399,7 @@ R.mensualidades = function () {
       '<div class="tbl-wrap"><table><thead><tr><th>Alumna</th><th>Grupo</th><th class="num">Esperado</th><th class="num">Pagado</th><th class="hidem">Fecha / medio</th><th>Estado</th><th></th></tr></thead><tbody id="fm-body"></tbody></table></div></div>';
     $('#main').innerHTML = h;
     enlazarMes('mm', R.mensualidades);
+    enlazarTabsFin();
     $('#btn-deudas').onclick = verDeudas;
     var g = $('#gen-mes'); if (g) g.onclick = function () { generarMes(d.mes, g, R.mensualidades); };
     function pintar() {
@@ -509,11 +521,12 @@ R.asistencia = function (fechaSel) {
 
 /* ---------- CAJA ---------- */
 R.caja = function () {
+  S.tfin = 'caja';
   cargando();
   api('api_caja', S.mes).then(function (c) {
     var max = 1; c.serie.forEach(function (s) { max = Math.max(max, s.ingresos, s.egresos); });
     var pendienteCristian = c.remanente - c.pagoCristian;
-    var h = cabecera('Caja', 'Lo que entra y sale del taller', selectorMes('cm') + '<button class="btn pri" id="mov-new">' + ic('plus') + 'Nuevo movimiento</button>');
+    var h = cabecera('Finanzas', 'Caja · lo que entra y sale del taller', selectorMes('cm') + '<button class="btn pri" id="mov-new">' + ic('plus') + 'Nuevo movimiento</button>') + tabsFin();
     h += '<div class="grid g4">' +
       '<div class="card kpi"><div class="lbl">Ingresos</div><div class="val" style="color:var(--ok)">' + money(c.ingresos) + '</div><div class="foot">Mensualidades ' + money(c.mensualidades) + (c.otrosIngresos ? ' · otros ' + money(c.otrosIngresos) : '') + '</div></div>' +
       '<div class="card kpi"><div class="lbl">Gastos</div><div class="val" style="color:var(--bad)">' + money(c.egresosSinCristian) + '</div><div class="foot">Profes, cancha, compras…</div></div>' +
@@ -526,13 +539,14 @@ R.caja = function () {
       '<div class="li"><span>De eso, tu pago</span><b>' + money(c.anio.pagoCristian) + '</b></div><div class="li"><span>Saldo</span><b>' + money(c.anio.ingresos - c.anio.egresos) + '</b></div></div>' +
       '<h3 style="margin:14px 0 6px">Por categoría este mes</h3><div class="list">' + Object.keys(c.porCategoria).sort().map(function (k) { var p = k.split('|'); return '<div class="li"><span><span class="pill ' + (p[0] === 'Ingreso' ? 'ok' : 'bad') + '">' + p[0] + '</span> ' + esc(p[1]) + '</span><span>' + money(c.porCategoria[k]) + '</span></div>'; }).join('') +
       (c.mensualidades ? '<div class="li"><span><span class="pill ok">Ingreso</span> Mensualidades</span><span>' + money(c.mensualidades) + '</span></div>' : '') + '</div></div></div>';
-    h += '<div class="card pad0" style="margin-top:16px"><div class="hd"><h3>Movimientos de ' + mesLabel(S.mes) + '</h3><span class="small muted">Las mensualidades se suman solas desde su sección</span></div><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Detalle</th><th class="num">Monto</th><th></th></tr></thead><tbody>' +
+    h += '<div class="card pad0" style="margin-top:16px"><div class="hd"><h3>Movimientos de ' + mesLabel(S.mes) + '</h3><span class="small muted">Las mensualidades se suman solas desde su pestaña</span></div><div class="tbl-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Detalle</th><th class="num">Monto</th><th></th></tr></thead><tbody>' +
       (c.movimientos.length ? c.movimientos.map(function (m) {
         var anulado = String(m.Referencia || '').indexOf('ANULADO') === 0;
         return '<tr style="' + (anulado ? 'opacity:.45;text-decoration:line-through' : '') + '"><td class="nowrap">' + fecha(m.Fecha) + '</td><td><span class="pill ' + (m.Tipo === 'Ingreso' ? 'ok' : 'bad') + '">' + m.Tipo + '</span></td><td>' + esc(m.Categoria) + '</td><td>' + esc(m.Detalle || '') + (m.Medio ? ' <span class="small muted">· ' + esc(m.Medio) + '</span>' : '') + '</td><td class="num"><b>' + money(m.Monto) + '</b></td><td class="nowrap" style="text-align:right">' + (anulado ? '' : '<button class="btn sm" data-ed="' + m.ID_Movimiento + '">Editar</button> <button class="btn sm ghost" data-an="' + m.ID_Movimiento + '">Anular</button>') + '</td></tr>';
       }).join('') : '<tr><td colspan="6" class="empty">Sin movimientos este mes</td></tr>') + '</tbody></table></div></div>';
     $('#main').innerHTML = h;
     enlazarMes('cm', R.caja);
+    enlazarTabsFin();
     $('#mov-new').onclick = function () { modalMov(null, c); };
     var mc = $('#mov-cris'); if (mc) mc.onclick = function () { modalMov({ Tipo: 'Egreso', Categoria: 'Pago Cristian (remanente)', Detalle: 'Cristian', Monto: pendienteCristian, Fecha: S.mes === S.boot.mes ? S.boot.hoy : S.mes + '-28' }, c); };
     $$('[data-ed]').forEach(function (b) { b.onclick = function () { modalMov(c.movimientos.filter(function (m) { return m.ID_Movimiento === b.dataset.ed; })[0], c); }; });
