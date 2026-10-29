@@ -1,0 +1,7 @@
+tests/index.html
+*.xlsx
+*.xls
+.clasp.json
+deploy_id.txt
+URL de la web.txt
+node_modules/
