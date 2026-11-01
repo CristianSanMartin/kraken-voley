@@ -181,8 +181,11 @@ R.inicio = function () {
       (d.sinRut.length ? '<div class="li"><span>' + d.sinRut.length + ' activas sin RUT / ficha</span><button class="btn sm" data-go="alumnas" data-arg="sinrut">Ver</button></div>' : '') +
       (S.nInsc ? '<div class="li"><span>' + S.nInsc + ' inscripciones nuevas</span><button class="btn sm" data-go="inscripciones">Revisar</button></div>' : '') +
       '</div></div>';
-    h += '<div class="card"><div class="hd"><h3>Cumpleaños de ' + MESES[Number(d.mes.slice(5)) - 1] + '</h3></div>' +
-      (d.cumpleanos.length ? '<div class="list">' + d.cumpleanos.map(function (c) { return '<div class="li"><span>🎂 ' + esc(c.alumna) + '</span><span class="muted">' + fechaCorta(c.fecha) + ' · ' + c.edad + ' años</span></div>'; }).join('') + '</div>' : '<div class="empty">Sin cumpleaños este mes</div>') + '</div>';
+    h += '<div class="card"><div class="hd"><h3>Próximos cumpleaños</h3><span class="small muted">próximos 15 días</span></div>' +
+      (d.cumpleanos.length ? '<div class="list">' + d.cumpleanos.map(function (c) {
+        var cuando = c.dias === 0 ? '<b style="color:var(--kr-600)">¡Hoy!</b>' : c.dias === 1 ? 'Mañana' : 'en ' + c.dias + ' días';
+        return '<div class="li"><span>🎂 ' + esc(c.alumna) + '</span><span class="muted">' + fechaCorta(c.fecha) + ' · ' + cuando + ' · cumple ' + c.edad + '</span></div>';
+      }).join('') + '</div>' : '<div class="empty">Nadie está de cumpleaños en los próximos 15 días</div>') + '</div>';
     h += '<div class="card"><div class="hd"><h3>Próximos partidos</h3><button class="btn sm ghost" data-go="torneos">Torneos →</button></div>' +
       (d.partidos.length ? '<div class="list">' + d.partidos.map(function (p) { return '<div class="li"><span>' + fechaCorta(p.Fecha) + ' · ' + esc(p.Serie) + '</span><span class="muted">' + esc(p.Rival || 'Rival por definir') + '</span></div>'; }).join('') + '</div>' : '<div class="empty">No hay partidos próximos cargados</div>') + '</div>';
     h += '</div>';

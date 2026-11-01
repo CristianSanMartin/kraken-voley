@@ -94,10 +94,15 @@ function api_dashboard(mes) {
     asis.forEach(function (r) { fechas[r.Fecha] = fechas[r.Fecha] || { p: 0, t: 0 }; fechas[r.Fecha].t++; if (r.Estado === 'Presente') fechas[r.Fecha].p++; });
     var sesiones = Object.keys(fechas).sort().map(function (f) { return { fecha: f, presentes: fechas[f].p, total: fechas[f].t }; });
 
-    var mm = mes.slice(5, 7);
-    var cumple = activas.filter(function (a) { return a.Fecha_Nacimiento && String(a.Fecha_Nacimiento).slice(5, 7) === mm; })
-      .map(function (a) { return { alumna: a.Nombre, fecha: a.Fecha_Nacimiento, edad: Number(mes.slice(0, 4)) - Number(String(a.Fecha_Nacimiento).slice(0, 4)) }; })
-      .sort(function (a, b) { return a.fecha.slice(8) < b.fecha.slice(8) ? -1 : 1; });
+    // Cumpleaños de hoy y los próximos DIAS_CUMPLE días (sin importar el mes que se mire; los ya pasados no salen).
+    var DIAS_CUMPLE = 15, h0 = new Date(hoy + 'T12:00:00Z');
+    var cumple = activas.filter(function (a) { return /^\d{4}-\d{2}-\d{2}/.test(String(a.Fecha_Nacimiento || '')); }).map(function (a) {
+      var fn = String(a.Fecha_Nacimiento), anio = h0.getUTCFullYear();
+      var prox = new Date(anio + fn.slice(4, 10) + 'T12:00:00Z');
+      if (prox < h0) { anio++; prox = new Date(anio + fn.slice(4, 10) + 'T12:00:00Z'); }
+      return { alumna: a.Nombre, fecha: fmtFecha_(prox), dias: Math.round((prox - h0) / 864e5), edad: anio - Number(fn.slice(0, 4)) };
+    }).filter(function (c) { return c.dias <= DIAS_CUMPLE; })
+      .sort(function (a, b) { return a.dias - b.dias || String(a.alumna).localeCompare(String(b.alumna)); });
 
     var partidos = leer_('Partidos').rows.filter(function (p) { return p.Fecha && p.Fecha >= hoy; })
       .sort(function (a, b) { return a.Fecha < b.Fecha ? -1 : 1; }).slice(0, 5);
