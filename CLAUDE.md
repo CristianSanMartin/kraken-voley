@@ -50,7 +50,7 @@ python3 tests/armar.py && node tests/prueba.js
 Si agregas una función de Apps Script nueva (p. ej. `UrlFetchApp`), agrégala al mock.
 
 ## Vista previa para Cristian
-`armar.py` también genera `tests/vista_previa.html` (la web con datos de ejemplo, sin `<html>/<head>/<body>` ni `<base>`).
+`armar.py` también genera `tests/vista_previa.html` (la web con datos de ejemplo, documento completo sin `<base>`).
 Se publica como Artifact de Claude en https://claude.ai/artifact/SES4NNdDwyXYrXLxABq6tu : después de cada cambio,
 volver a publicarlo en esa misma URL (pasar `url`) para que Cristian vea cómo queda antes de actualizar la web real.
 Las descargas (p. ej. la nómina) no funcionan en la vista previa.
