@@ -18,3 +18,5 @@
 - v1.0: migración del Excel (nov-2023 → oct-2026) a Kraken_BD con IDs; web con Inicio, Alumnas, Mensualidades, Asistencia, Caja, Torneos, Inscripciones, Más registros, Configuración.
 - v1.1: orden y filtro tipo Excel en todas las tablas; actualizador único desde GitHub.
 - v1.2: Mensualidades y Caja pasan a ser pestañas de una sola sección **Finanzas**.
+- v1.2.1: Inicio muestra los cumpleaños de los próximos 15 días.
+- v1.3: botón para adjuntar el comprobante de pago (foto) al registrar un pago; se guarda en Drive > Mensualidades > "2026-11 Noviembre" y queda enlazado (📎) en la mensualidad.

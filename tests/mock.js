@@ -23,6 +23,18 @@ var __SS = { getSheetByName:function(n){ return __SHEETS[n]? __mkSheet(n):null; 
 var SpreadsheetApp = { openById:function(){ return __SS; }, getActiveSpreadsheet:function(){ return __SS; }, getUi:function(){ throw new Error('no ui'); } };
 var PropertiesService = { getScriptProperties:function(){ return { getProperty:function(){ return null; } }; } };
 var Utilities = { formatDate:function(d,tz,f){ function p(n){return ('0'+n).slice(-2);} return f.replace('yyyy',d.getFullYear()).replace('MM',p(d.getMonth()+1)).replace('dd',p(d.getDate())).replace('HH',p(d.getHours())).replace('mm',p(d.getMinutes())); } };
+function __carpeta(nombre){ var id='F'+(++__DRIVE.n); var c={ id:id, nombre:nombre, sub:[], archivos:[],
+  getId:function(){return id;}, getName:function(){return nombre;},
+  getFoldersByName:function(n){ var l=c.sub.filter(function(x){return x.nombre===n;}); return { hasNext:function(){return l.length>0;}, next:function(){return l.shift();} }; },
+  createFolder:function(n){ var f=__carpeta(n); c.sub.push(f); return f; },
+  createFile:function(b){ var aid='A'+(++__DRIVE.n); c.archivos.push(b.nombre); return { getId:function(){return aid;}, getName:function(){return b.nombre;}, getUrl:function(){ return 'https://drive.google.com/file/d/'+aid+'/view'; } }; } };
+  __DRIVE.porId[id]=c; return c; }
+var __DRIVE = { n:0, porId:{}, raiz:null };
+__DRIVE.raiz = __carpeta('Mi unidad');
+var DriveApp = { getFolderById:function(id){ if(!__DRIVE.porId[id]) throw new Error('no existe'); return __DRIVE.porId[id]; },
+  getFoldersByName:function(n){ return __DRIVE.raiz.getFoldersByName(n); }, createFolder:function(n){ return __DRIVE.raiz.createFolder(n); } };
+Utilities.newBlob = function(bytes, tipo, nombre){ return { bytes:bytes, tipo:tipo, nombre:nombre }; };
+Utilities.base64Decode = function(s){ return atob(s); };
 var Session = { getActiveUser:function(){ return { getEmail:function(){ return 'c.snmartin@gmail.com'; } }; } };
 var LockService = { getScriptLock:function(){ return { waitLock:function(){}, releaseLock:function(){} }; } };
 var ScriptApp = { getService:function(){ return { getUrl:function(){ return 'https://script.google.com/macros/s/X/exec'; } }; } };

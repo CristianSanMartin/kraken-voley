@@ -229,7 +229,7 @@ function api_mensualidades(mes) {
         esperado: num_(m.Monto_Esperado) || (ESTADOS_DEUDA.indexOf(m.Estado) >= 0 ? num_(a.Tarifa) : null), pagado: m.Monto_Pagado,
         fecha: m.Fecha_Pago, medio: m.Medio_Pago, estado: m.Estado, nota: m.Nota, obs: m.Obs_Original,
         apoderado: a.Apoderado, telefono: a.Telefono_Apoderado, tarifa: a.Tarifa, atrasada: estaAtrasada_(m, cfg, hoy),
-        hermanos: a.Hermanos };
+        hermanos: a.Hermanos, comprobante: m.Comprobante || '' };
     }).sort(function (x, y) { return String(x.alumna).localeCompare(String(y.alumna)); });
     var faltantes = alumnas.filter(function (a) { return a.Estado === 'Activa' && !conFila[a.ID_Alumna]; })
       .map(function (a) { return { idAlumna: a.ID_Alumna, alumna: a.Nombre, grupo: a.Grupo_Actual, tarifa: a.Tarifa }; });
@@ -274,6 +274,42 @@ function api_registrarPago(idMen, p) {
       actualizar_('Mensualidades', r.row._row, cambios, r.t.h);
       log_('Registrar pago', 'Mensualidades', idMen, '$' + monto + ' ' + cambios.Medio_Pago);
       return { id: idMen };
+    });
+  });
+}
+
+/* ---------- Comprobantes de pago (Drive > Mensualidades > "2026-11 Noviembre") ---------- */
+var MESES_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+/** Carpeta "Mensualidades" del Drive. Su ID queda en Config.Carpeta_Mensualidades; si no existe, se crea. */
+function carpetaMensualidades_() {
+  var id = config_().Carpeta_Mensualidades;
+  if (id) { try { return DriveApp.getFolderById(String(id)); } catch (e) { /* la borraron o movieron: se busca de nuevo */ } }
+  var it = DriveApp.getFoldersByName('Mensualidades');
+  var f = it.hasNext() ? it.next() : DriveApp.createFolder('Mensualidades');
+  var t = leer_('Config'), row = t.rows.filter(function (r) { return r.Clave === 'Carpeta_Mensualidades'; })[0];
+  if (row) actualizar_('Config', row._row, { Valor: f.getId() }, t.h);
+  else agregar_('Config', [{ Clave: 'Carpeta_Mensualidades', Valor: f.getId(), Descripcion: 'Carpeta del Drive donde se guardan los comprobantes de pago (se llena sola)' }]);
+  return f;
+}
+
+/** Sube la foto del comprobante a Mensualidades/<mes> (crea la subcarpeta si es la primera del mes) y guarda el enlace en la mensualidad. */
+function api_subirComprobante(idMen, archivo) {
+  return run_(function () {
+    if (!archivo || !archivo.datos) throw new Error('No llegó el archivo');
+    if (!/^image\//.test(archivo.tipo || '')) throw new Error('El comprobante debe ser una imagen (foto o captura de pantalla)');
+    return conLock_(function () {
+      asegurarColumnas_('Mensualidades', ['Comprobante']);
+      var r = buscarPorId_('Mensualidades', 'ID_Mensualidad', idMen);
+      var mes = String(r.row.Mes), nombreSub = mes + ' ' + MESES_ES[Number(mes.slice(5, 7)) - 1];
+      var raiz = carpetaMensualidades_(), it = raiz.getFoldersByName(nombreSub);
+      var sub = it.hasNext() ? it.next() : raiz.createFolder(nombreSub);
+      var ext = (String(archivo.nombre || '').match(/\.(\w{2,5})$/) || [, archivo.tipo.split('/')[1] || 'jpg'])[1].toLowerCase();
+      var nombre = idMen + ' ' + (r.row.Nombre_ref || r.row.ID_Alumna) + ' ' + mes + '.' + ext;
+      var f = sub.createFile(Utilities.newBlob(Utilities.base64Decode(archivo.datos), archivo.tipo, nombre));
+      actualizar_('Mensualidades', r.row._row, { Comprobante: f.getUrl() }, r.t.h);
+      log_('Subir comprobante', 'Mensualidades', idMen, nombreSub + '/' + nombre);
+      return { id: idMen, url: f.getUrl() };
     });
   });
 }

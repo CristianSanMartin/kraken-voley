@@ -325,7 +325,7 @@ function fichaAlumna(id) {
     var h = '<div class="tabs" id="fa-tabs"><button class="on" data-t="1">Ficha</button><button data-t="2">Pagos (' + d.mensualidades.length + ')</button><button data-t="3">Asistencia</button></div>';
     h += '<div data-p="1"><div class="grid g2" style="gap:0 24px">' + info.map(function (r) { return '<div class="li"><span class="muted small">' + r[0] + '</span><span style="text-align:right">' + (r[1] ? esc(r[1]) : '<span class="muted">—</span>') + '</span></div>'; }).join('') + '</div></div>';
     h += '<div data-p="2" hidden><div class="tbl-wrap" style="max-height:50vh"><table><thead><tr><th>Mes</th><th>Grupo</th><th class="num">Pagado</th><th>Fecha</th><th>Estado</th><th>Nota</th></tr></thead><tbody>' +
-      d.mensualidades.map(function (x) { return '<tr><td class="nowrap">' + mesLabel(x.Mes, true) + '</td><td>' + esc(x.Grupo || '') + '</td><td class="num">' + money(x.Monto_Pagado) + '</td><td class="nowrap">' + (x.Fecha_Pago ? fecha(x.Fecha_Pago) : '') + '</td><td>' + pillEstado(x.Estado, x.atrasada) + '</td><td class="small muted">' + esc([x.Nota, x.Obs_Original].filter(Boolean).join(' · ')) + '</td></tr>'; }).join('') + '</tbody></table></div></div>';
+      d.mensualidades.map(function (x) { return '<tr><td class="nowrap">' + mesLabel(x.Mes, true) + '</td><td>' + esc(x.Grupo || '') + '</td><td class="num">' + money(x.Monto_Pagado) + '</td><td class="nowrap">' + (x.Fecha_Pago ? fecha(x.Fecha_Pago) : '') + (x.Comprobante ? ' <a href="' + esc(x.Comprobante) + '" target="_blank" rel="noopener" title="Ver comprobante">📎</a>' : '') + '</td><td>' + pillEstado(x.Estado, x.atrasada) + '</td><td class="small muted">' + esc([x.Nota, x.Obs_Original].filter(Boolean).join(' · ')) + '</td></tr>'; }).join('') + '</tbody></table></div></div>';
     h += '<div data-p="3" hidden>' + (d.asistencia.length ? '<table><thead><tr><th>Mes</th><th class="num">Presente</th><th class="num">Sesiones</th><th class="num">Injustificadas</th></tr></thead><tbody>' +
       d.asistencia.map(function (x) { return '<tr><td>' + mesLabel(x.mes) + '</td><td class="num">' + x.presentes + '</td><td class="num">' + x.sesiones + '</td><td class="num">' + (x.injustificadas ? '<span class="pill bad">' + x.injustificadas + '</span>' : '0') + '</td></tr>'; }).join('') + '</tbody></table>' : '<div class="empty">Sin registros de asistencia</div>') + '</div>';
     m.querySelector('.mb').innerHTML = h;
@@ -418,7 +418,7 @@ R.mensualidades = function () {
         var debe = x.estado === 'Pendiente' || x.estado === 'Promete pagar';
         return '<tr><td data-v="' + esc(x.alumna) + '"><div class="who"><span class="av">' + iniciales(x.alumna) + '</span><div><b class="click" data-ficha="' + esc(x.idAlumna) + '" style="cursor:pointer">' + esc(x.alumna) + '</b>' + (x.nota || x.obs ? '<span class="small muted">' + esc([x.nota, x.obs].filter(Boolean).join(' · ')) + '</span>' : '') + '</div></div></td>' +
           '<td>' + (x.grupo ? '<span class="pill kr">' + esc(x.grupo) + '</span>' : '') + '</td><td class="num">' + money(x.esperado) + '</td><td class="num">' + (x.pagado ? '<b>' + money(x.pagado) + '</b>' : '—') + '</td>' +
-          '<td class="hidem small">' + (x.fecha ? fecha(x.fecha) : '') + (x.medio ? ' · ' + esc(x.medio) : '') + '</td><td>' + pillEstado(x.estado, x.atrasada) + '</td>' +
+          '<td class="hidem small">' + (x.fecha ? fecha(x.fecha) : '') + (x.medio ? ' · ' + esc(x.medio) : '') + (x.comprobante ? ' <a href="' + esc(x.comprobante) + '" target="_blank" rel="noopener" title="Ver comprobante">📎</a>' : '') + '</td><td>' + pillEstado(x.estado, x.atrasada) + '</td>' +
           '<td class="nowrap" style="text-align:right">' + (debe ? '<button class="btn sm wa" data-wa="' + esc(x.id) + '" title="Mensaje de cobro">' + ic('wa') + '</button> ' : '') +
           '<button class="btn sm ' + (debe ? 'pri' : '') + '" data-pay="' + esc(x.id) + '">' + (debe ? 'Registrar pago' : 'Editar') + '</button></td></tr>';
       }).join('') : '<tr><td colspan="7" class="empty">' + (d.filas.length ? 'Sin resultados' : 'Este mes aún no tiene mensualidades creadas') + '</td></tr>';
@@ -439,15 +439,28 @@ function modalPago(x, luego) {
     '<h3 style="margin-bottom:10px">Registrar pago</h3><form class="form" id="f-pago" onsubmit="return false">' +
     campo('Monto', 'monto', monto, 'number') + campo('Fecha de pago', 'fecha', x.fecha || S.boot.hoy, 'date') +
     campo('Medio', 'medio', x.medio || 'Transferencia', 'select', ['Transferencia', 'Efectivo', 'Mercado Pago']) + campo('Nota (opcional)', 'nota', x.nota) + '</form>' +
+    '<div class="row" style="margin-top:12px"><label class="btn sm" for="pago-comp">📎 ' + (x.comprobante ? 'Cambiar comprobante' : 'Adjuntar comprobante') + '</label>' +
+    '<input type="file" id="pago-comp" accept="image/*" hidden><span class="small muted" id="pago-comp-n">' +
+    (x.comprobante ? '<a href="' + esc(x.comprobante) + '" target="_blank" rel="noopener">Ver comprobante guardado</a>' : 'Foto o captura de la transferencia (opcional)') + '</span></div>' +
     '<h3 style="margin:18px 0 10px">…o cambiar el estado</h3><div class="row">' +
     ['Pendiente', 'Promete pagar', 'Becada', 'Sin cobro', 'Retirada'].map(function (e) { return '<button class="btn sm" data-est="' + e + '">' + e + '</button>'; }).join('') + '</div>' +
     '<p class="small muted">"Promete pagar" usa la nota (ej: "paga el viernes"). "Sin cobro" = no corresponde cobrar ese mes.</p>';
   var m = modal('Mensualidad', cuerpo, '<button class="btn" data-c>Cancelar</button><button class="btn ok" id="pago-ok">Guardar pago</button>');
   m.querySelector('[data-c]').onclick = cerrarModal;
+  var inpComp = m.querySelector('#pago-comp');
+  inpComp.onchange = function () { if (inpComp.files[0]) m.querySelector('#pago-comp-n').textContent = inpComp.files[0].name; };
   m.querySelector('#pago-ok').onclick = function (e) {
-    var o = leerForm(m.querySelector('#f-pago'));
+    var o = leerForm(m.querySelector('#f-pago')), archivo = inpComp.files[0];
     ocupado(e.target, true);
-    api('api_registrarPago', x.id, o).then(function () { cerrarModal(); toast('Pago registrado: ' + x.alumna + ' ' + money(o.monto)); luego(); }).catch(function (err) { ocupado(e.target, false); fallo(err); });
+    api('api_registrarPago', x.id, o).then(function () {
+      if (!archivo) return false;
+      return leerImagen(archivo).then(function (a) { return api('api_subirComprobante', x.id, a); })
+        .then(function () { return true; }, function (err) { toast('El pago quedó guardado, pero el comprobante no se pudo subir: ' + (err && err.message || err), true); return null; });
+    }).then(function (subido) {
+      cerrarModal();
+      if (subido !== null) toast('Pago registrado: ' + x.alumna + ' ' + money(o.monto) + (subido ? ' · comprobante guardado en Drive' : ''));
+      luego();
+    }).catch(function (err) { ocupado(e.target, false); fallo(err); });
   };
   m.querySelectorAll('[data-est]').forEach(function (b) {
     b.onclick = function () {
@@ -455,6 +468,28 @@ function modalPago(x, luego) {
       ocupado(b, true);
       api('api_estadoMensualidad', x.id, b.dataset.est, nota).then(function () { cerrarModal(); toast(x.alumna + ': ' + b.dataset.est); luego(); }).catch(function (err) { ocupado(b, false); fallo(err); });
     };
+  });
+}
+
+/** Lee una foto y la achica (máx. 1600 px, JPG) para que suba rápido. Si el navegador no la puede abrir (ej. HEIC), va tal cual. */
+function leerImagen(file) {
+  return new Promise(function (resolve, reject) {
+    var fr = new FileReader();
+    fr.onerror = function () { reject(new Error('No se pudo leer el archivo')); };
+    fr.onload = function () {
+      var original = { nombre: file.name, tipo: file.type || 'image/jpeg', datos: String(fr.result).split(',')[1] };
+      var img = new Image();
+      img.onerror = function () { resolve(original); };
+      img.onload = function () {
+        var k = Math.min(1, 1600 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        var datos = c.toDataURL('image/jpeg', 0.85).split(',')[1];
+        resolve(datos.length < original.datos.length ? { nombre: file.name.replace(/\.\w+$/, '') + '.jpg', tipo: 'image/jpeg', datos: datos } : original);
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
   });
 }
 
