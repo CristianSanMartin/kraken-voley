@@ -62,7 +62,9 @@ function api_dashboard(mes) {
     var cfg = config_(), hoy = hoyStr_();
     var alumnas = leer_('Alumnas').rows;
     var activas = alumnas.filter(function (a) { return a.Estado === 'Activa'; });
-    var mens = leer_('Mensualidades').rows;
+    var tm = leer_('Mensualidades');
+    conLock_(function () { sincronizarMensualidades_(alumnas, tm); });
+    var mens = tm.rows;
     var delMes = mens.filter(function (m) { return m.Mes === mes; });
     var porAlumna = {};
     alumnas.forEach(function (a) { porAlumna[a.ID_Alumna] = a; });
@@ -182,8 +184,12 @@ function api_guardarAlumna(obj) {
         var row = t.rows.filter(function (r) { return r.ID_Alumna === obj.ID_Alumna; })[0];
         if (!row) throw new Error('No existe ' + obj.ID_Alumna);
         if (limpio.Estado === 'Retirada' && row.Estado !== 'Retirada') limpio.Ultimo_Mes = mesActual_();
+        var volvio = row.Estado === 'Retirada' && limpio.Estado === 'Activa';
         actualizar_('Alumnas', row._row, limpio, t.h);
         log_('Editar alumna', 'Alumnas', obj.ID_Alumna, Object.keys(limpio).join(', '));
+        // Finanzas al día con la ficha: grupo, tarifa y retiro/reingreso se reflejan desde el mes actual.
+        Object.keys(limpio).forEach(function (k) { row[k] = limpio[k]; });
+        sincronizarMensualidades_(t.rows, null, obj.ID_Alumna, volvio);
         return { id: obj.ID_Alumna };
       }
       var dup = t.rows.filter(function (r) { return String(r.Nombre).toLowerCase().trim() === String(limpio.Nombre).toLowerCase().trim(); })[0];
@@ -215,12 +221,40 @@ function api_nomina(filtro) {
 /* ------------------------------------------------------------------ */
 /* Mensualidades                                                        */
 /* ------------------------------------------------------------------ */
+/**
+ * Mantiene las mensualidades del mes actual en adelante al día con la ficha de la alumna: grupo y tarifa actuales,
+ * y si se retiró, sus deudas desde este mes pasan a "Retirada" (reactivar = al volver, pasan de nuevo a Pendiente).
+ * Los meses pasados no se tocan: guardan el grupo y el monto que tenían. Si se le pasan las filas ya leídas, las corrige también en memoria.
+ * Escribe en la hoja: llamarla dentro de conLock_.
+ */
+function sincronizarMensualidades_(alumnas, mens, soloAlumna, reactivar) {
+  var desde = mesActual_(), por = {}, cambios = [];
+  alumnas = alumnas || leer_('Alumnas').rows;
+  mens = mens || leer_('Mensualidades');
+  alumnas.forEach(function (a) { por[a.ID_Alumna] = a; });
+  mens.rows.forEach(function (m) {
+    var a = por[m.ID_Alumna];
+    if (!a || !m.Mes || m.Mes < desde || (soloAlumna && m.ID_Alumna !== soloAlumna)) return;
+    var c = {}, deuda = ESTADOS_DEUDA.indexOf(m.Estado) >= 0;
+    if (a.Grupo_Actual && m.Grupo !== a.Grupo_Actual) c.Grupo = a.Grupo_Actual;
+    if (a.Estado === 'Retirada' && deuda) { c.Estado = 'Retirada'; deuda = false; }
+    if (reactivar && a.Estado === 'Activa' && m.Estado === 'Retirada') { c.Estado = 'Pendiente'; deuda = true; }
+    if (deuda && num_(a.Tarifa) && num_(m.Monto_Esperado) !== num_(a.Tarifa)) c.Monto_Esperado = num_(a.Tarifa);
+    if (Object.keys(c).length) cambios.push([m, c]);
+  });
+  cambios.forEach(function (x) { actualizar_('Mensualidades', x[0]._row, x[1], mens.h); Object.keys(x[1]).forEach(function (k) { x[0][k] = x[1][k]; }); });
+  if (cambios.length) log_('Sincronizar mensualidades', 'Mensualidades', soloAlumna || '', cambios.length + ' filas al día con la ficha');
+  return cambios.length;
+}
+
 function api_mensualidades(mes) {
   return run_(function () {
     var cfg = config_(), hoy = hoyStr_();
     var alumnas = leer_('Alumnas').rows, por = {};
     alumnas.forEach(function (a) { por[a.ID_Alumna] = a; });
-    var mens = leer_('Mensualidades').rows.filter(function (m) { return m.Mes === mes; });
+    var tm = leer_('Mensualidades');
+    conLock_(function () { sincronizarMensualidades_(alumnas, tm); });
+    var mens = tm.rows.filter(function (m) { return m.Mes === mes; });
     var conFila = {};
     var filas = mens.map(function (m) {
       conFila[m.ID_Alumna] = true;

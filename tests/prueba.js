@@ -21,6 +21,32 @@ const path = require('path');
   await ir('alumnas'); paso('Alumnas lista', (await p.$$('#fa-body tr[data-id]')).length > 0);
   await ir('mensualidades');
   { const g = await p.$('#gen-mes'); if (g) { await g.click(); await w(1500); } }  // el mes actual puede no estar creado aún
+  {
+    const r = await p.evaluate(async () => {
+      const call = (f, ...a) => new Promise(res => google.script.run.withSuccessHandler(x => res(x))[f](...a));
+      const mes = S.boot.mes;
+      const fila = id => call('api_mensualidades', mes).then(x => x.data.filas.find(f => f.idAlumna === id));
+      const x = (await call('api_mensualidades', mes)).data.filas.find(f => f.estado === 'Pendiente' && f.grupo);
+      const otro = x.grupo === 'A16' ? 'C12' : 'A16', out = {};
+      await call('api_guardarAlumna', { ID_Alumna: x.idAlumna, Nombre: x.alumna, Grupo_Actual: otro, Tarifa: 13000 });
+      let f = await fila(x.idAlumna); out.grupo = f.grupo === otro && f.esperado === 13000;
+      await call('api_guardarAlumna', { ID_Alumna: x.idAlumna, Nombre: x.alumna, Estado: 'Retirada' });
+      f = await fila(x.idAlumna); const d = await call('api_dashboard', mes);
+      out.retiro = f.estado === 'Retirada' && !d.data.deudas.some(y => y.id === x.id);
+      await call('api_guardarAlumna', { ID_Alumna: x.idAlumna, Nombre: x.alumna, Estado: 'Activa' });
+      f = await fila(x.idAlumna); out.vuelve = f.estado === 'Pendiente';
+      // datos que quedaron desfasados antes de este arreglo (cambiados directo en la hoja) también se corrigen
+      const h = __SHEETS.Alumnas[0], i = __SHEETS.Alumnas.findIndex(r => r[0] === x.idAlumna);
+      __SHEETS.Alumnas[i][h.indexOf('Estado')] = 'Retirada';
+      f = await fila(x.idAlumna); out.antiguo = f.estado === 'Retirada';
+      __SHEETS.Alumnas[i][h.indexOf('Estado')] = 'Activa';
+      return out;
+    });
+    paso('Cambio de grupo/tarifa en Alumnas se ve en Finanzas', r.grupo);
+    paso('Alumna retirada deja de deber el mes actual', r.retiro);
+    paso('Alumna que vuelve queda Pendiente de nuevo', r.vuelve);
+    paso('Retiradas de antes del arreglo también se corrigen', r.antiguo);
+  }
   const antes = await p.$$eval('#fm-body .pri[data-pay]', x => x.length);
   if (antes) { await p.click('#fm-body .pri[data-pay]'); await w(300); await p.click('#pago-ok'); await w(1500); }
   paso('Registrar pago', (await p.$$eval('#fm-body .pri[data-pay]', x => x.length)) === Math.max(0, antes - 1));
