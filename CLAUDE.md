@@ -24,7 +24,8 @@ Cristian no es técnico: háblale en español simple, sin jerga, y explícale lo
 - Columnas tipo texto (`Mes` = "2026-10", RUT, Dorsal…) se escriben con apóstrofo para que Sheets no las convierta (ver `COLS_TEXTO`).
 - Hojas: Alumnas, Mensualidades (1 fila = alumna×mes), Asistencia (1 fila = alumna×sábado), Movimientos (caja sin mensualidades),
   Personal, Torneos, Torneo_Plantel, Partidos, Torneo_Cuotas, Estadisticas, Camisetas, Camisetas_Pagos, Compras_Detalle, Club,
-  Planificacion, Inscripciones / "Respuestas de formulario N" (Google Forms), Config (clave/valor), Revision, Log.
+  Planificacion, Inscripciones / "Respuestas de formulario N" (Google Forms), Config (clave/valor), Revision, Log,
+  Portal_Apoderados (registro de las planillas de familias; se crea sola).
 
 ## Reglas del taller
 - Mensualidad estándar $16.000; $13.000 = tarifa anterior o hermanas (ej. hermanas Garbo). La tarifa vive en la ficha.
@@ -41,6 +42,13 @@ Cristian no es técnico: háblale en español simple, sin jerga, y explícale lo
 - `App.html`: JS sin framework. Vistas en `R.<vista>`. Finanzas (`R.finanzas`) agrupa las pestañas Mensualidades y Caja (`S.tfin`); `ir(mensualidades|caja)` abre Finanzas en esa pestaña. Toda tabla con `<thead>` recibe sola orden + filtro tipo Excel
   (`mejorarTablas`); para que una celda ordene/filtre por un valor limpio, ponle `data-v`.
 - Estilo: colores del logo (morado `--kr-*`), fuentes Outfit + Inter. Responsive (menú lateral se oculta bajo 820px).
+
+## Portal de apoderados (`Portal.gs`, vista `R.apoderados`)
+- Una **planilla de Google por correo de apoderado** (`Email_Apoderado` de alumnas Activas; hermanas juntas), compartida
+  como lector **solo** con ese Gmail. Pestañas: Resumen, Pagos, Asistencia, Partidos, Ficha. Carpeta Drive `Kraken - Portal apoderados`.
+- Se rehace cada noche (activador `portalDiario`, se prende desde la vista Apoderados) o con "Actualizar planillas".
+- Nunca poner notas internas (Nota de mensualidad, Observaciones) ni datos de otras alumnas. Si la alumna se retira, se quita el acceso.
+- Se eligió así porque con Gmail normales una web "ejecutar como yo" no puede saber quién entró (`Session.getActiveUser()` viene vacío).
 
 ## Probar antes de subir
 ```

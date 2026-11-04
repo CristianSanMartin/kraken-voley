@@ -45,6 +45,8 @@ var ICON = {
   search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
   wa: '<path d="M20.5 11.6a8.5 8.5 0 0 1-12.6 7.5L3.5 20.5l1.4-4.3A8.5 8.5 0 1 1 20.5 11.6z"/><path d="M9 8.5c0 3.5 2.6 6.4 6 6.6l1.2-1.4-1.9-1-1 .8a4.6 4.6 0 0 1-2.4-2.4l.8-1-1-1.9z"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
+  family: '<circle cx="8" cy="7" r="3"/><circle cx="17" cy="9" r="2.3"/><path d="M2.5 20c.6-3.8 2.8-6 5.5-6s4.9 2.2 5.5 6M13.5 15.2c.9-.8 2.1-1.2 3.5-1.2 2.4 0 4 1.9 4.5 6"/>',
+  ext: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
   left: '<path d="M15 5l-7 7 7 7"/>', right: '<path d="M9 5l7 7-7 7"/>',
   down: '<path d="M12 4v12M6 11l6 6 6-6M4 20h16"/>', copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>'
 };
@@ -54,7 +56,7 @@ function ic(n) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentCol
 var VISTAS = [
   ['inicio', 'Inicio', 'home'], ['alumnas', 'Alumnas', 'users'], ['finanzas', 'Finanzas', 'cash'],
   ['asistencia', 'Asistencia', 'check'], ['torneos', 'Torneos', 'trophy'],
-  ['sep'], ['inscripciones', 'Inscripciones', 'inbox'], ['mas', 'Más registros', 'more'], ['config', 'Configuración', 'gear']
+  ['sep'], ['inscripciones', 'Inscripciones', 'inbox'], ['apoderados', 'Apoderados', 'family'], ['mas', 'Más registros', 'more'], ['config', 'Configuración', 'gear']
 ];
 function pintarNav() {
   $('#nav').innerHTML = VISTAS.map(function (v) {
@@ -715,6 +717,65 @@ R.inscripciones = function () {
         };
       };
     });
+  }).catch(fallo);
+};
+
+/* ---------- APODERADOS (planilla de Google por familia) ---------- */
+R.apoderados = function () {
+  cargando();
+  api('api_portalEstado').then(function (d) {
+    var nAlDia = d.familias.filter(function (f) { return f.estado === 'Al día'; }).length;
+    var h = cabecera('Apoderados', 'Cada familia ve los pagos, la asistencia, los partidos y la ficha de sus hijas en una planilla de Google compartida solo con su Gmail',
+      '<button class="btn pri" id="por-act">Actualizar planillas</button>');
+    h += '<div class="note ' + (d.diario ? '' : 'warn ') + 'row" style="margin-bottom:16px"><span>' + (d.diario
+      ? 'Las planillas se actualizan solas <b>cada noche</b>. Si haces un cambio y quieres que lo vean altiro, aprieta "Actualizar planillas".'
+      : 'La actualización automática de cada noche está <b>apagada</b>: las familias solo verán los cambios cuando aprietes "Actualizar planillas".') +
+      '</span><button class="btn sm right ' + (d.diario ? '' : 'pri') + '" id="por-diario">' + (d.diario ? 'Apagar' : 'Activar cada noche') + '</button></div>';
+    h += '<div class="grid g3" style="margin-bottom:16px">' +
+      '<div class="card kpi"><div class="lbl">Familias con correo</div><div class="val">' + d.familias.length + '</div></div>' +
+      '<div class="card kpi"><div class="lbl">Planillas al día</div><div class="val" style="color:var(--ok)">' + nAlDia + '</div></div>' +
+      '<div class="card kpi"><div class="lbl">Alumnas sin correo</div><div class="val" style="color:' + (d.sinCorreo.length ? 'var(--warn)' : 'inherit') + '">' + d.sinCorreo.length + '</div><div class="foot">no tienen planilla</div></div></div>';
+    h += '<div class="card pad0"><div class="hd"><h3>Familias</h3><span class="small muted">El apoderado abre el enlace con la cuenta de Google de ese correo</span></div><div class="tbl-wrap"><table><thead><tr><th>Apoderado</th><th>Correo</th><th>Alumnas</th><th>Estado</th><th class="hidem">Actualizada</th><th></th></tr></thead><tbody>' +
+      (d.familias.length ? d.familias.map(function (f, i) {
+        var pill = f.estado === 'Al día' ? 'ok' : f.estado === 'Con error' ? 'bad' : 'warn';
+        return '<tr><td>' + esc(f.apoderado || '—') + '</td><td class="small">' + esc(f.email) + '</td><td>' + esc(f.alumnas.join(', ')) + '</td>' +
+          '<td data-v="' + esc(f.estado) + '"><span class="pill ' + pill + '"><span class="dot"></span>' + esc(f.estado) + '</span>' + (f.error ? '<div class="small" style="color:var(--bad)">' + esc(f.error) + '</div>' : '') + '</td>' +
+          '<td class="hidem small nowrap">' + esc(f.actualizada) + '</td><td class="nowrap" style="text-align:right">' +
+          (f.url ? '<a class="btn sm" href="' + esc(f.url) + '" target="_blank" rel="noopener" title="Abrir la planilla">' + ic('ext') + '</a> <button class="btn sm wa" data-pwa="' + i + '" title="Enviar el enlace por WhatsApp">' + ic('wa') + '</button> ' : '') +
+          '<button class="btn sm" data-pone="' + i + '">' + (f.url ? 'Actualizar' : 'Crear') + '</button></td></tr>';
+      }).join('') : '<tr><td colspan="6" class="empty">Ninguna alumna activa tiene correo de apoderado en su ficha.</td></tr>') + '</tbody></table></div></div>';
+    if (d.sinCorreo.length) {
+      h += '<div class="card pad0" style="margin-top:16px"><div class="hd"><h3>Alumnas activas sin correo de apoderado</h3><span class="small muted">Agrega el Gmail del apoderado en la ficha para crear su planilla</span></div><div class="list" style="padding:0 16px 8px">' +
+        d.sinCorreo.map(function (a) { return '<div class="li"><span><b>' + esc(a.alumna) + '</b> <span class="small muted">' + esc([a.grupo, a.apoderado].filter(String).join(' · ')) + '</span></span><button class="btn sm" data-ficha="' + esc(a.id) + '">Abrir ficha</button></div>'; }).join('') + '</div></div>';
+    }
+    if (d.sinAcceso.length) {
+      h += '<p class="small muted" style="margin-top:12px">Sin acceso (ninguna alumna activa tiene ese correo, por retiro o cambio de correo): ' + esc(d.sinAcceso.map(function (x) { return x.email; }).join(', ')) + '. Su planilla quedó en tu Drive, pero ya no la pueden abrir.</p>';
+    }
+    $('#main').innerHTML = h;
+    function actualizar(btn, email) {
+      ocupado(btn, true);
+      toast(email ? 'Actualizando la planilla…' : 'Actualizando planillas… puede tardar unos minutos');
+      api('api_portalActualizar', email || '').then(function (r) {
+        toast((r.creadas ? r.creadas + ' creadas · ' : '') + r.actualizadas + ' actualizadas' + (r.errores.length ? ' · ' + r.errores.length + ' con error' : '') +
+          (r.pendientes ? ' · faltan ' + r.pendientes + ': aprieta de nuevo' : ''), r.errores.length > 0);
+        R.apoderados();
+      }).catch(function (e) { ocupado(btn, false); fallo(e); });
+    }
+    $('#por-act').onclick = function () { actualizar($('#por-act')); };
+    $('#por-diario').onclick = function () {
+      var b = $('#por-diario'); ocupado(b, true);
+      api('api_portalDiario', !d.diario).then(function () { toast(d.diario ? 'Actualización automática apagada' : 'Listo: se actualizarán cada noche'); R.apoderados(); }).catch(function (e) { ocupado(b, false); fallo(e); });
+    };
+    $$('[data-pone]').forEach(function (b) { b.onclick = function () { actualizar(b, d.familias[b.dataset.pone].email); }; });
+    $$('[data-pwa]').forEach(function (b) {
+      b.onclick = function () {
+        var f = d.familias[b.dataset.pwa];
+        var nombres = f.alumnas.length > 1 ? f.alumnas.slice(0, -1).join(', ') + ' y ' + f.alumnas[f.alumnas.length - 1] : f.alumnas[0];
+        enviarWa(f.telefono, 'Hola ' + ((f.apoderado || '').split(' ')[0] || '') + ', te comparto la planilla de Kraken Vóley donde puedes ver los pagos, la asistencia, los partidos y los datos de la ficha de ' + nombres + ':\n' + f.url +
+          '\n\nPara abrirla, entra con tu cuenta de Google ' + f.email + '. Es privada (solo tú la puedes ver) y se actualiza sola cada noche. Si ves algún dato incorrecto, avísame. Saludos, Cristian – Kraken Vóley 🏐');
+      };
+    });
+    $$('[data-ficha]').forEach(function (b) { b.onclick = function () { fichaAlumna(b.dataset.ficha); }; });
   }).catch(fallo);
 };
 

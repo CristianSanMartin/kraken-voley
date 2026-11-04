@@ -77,6 +77,48 @@ const path = require('path');
   await ir('caja'); paso('ir(caja) abre Finanzas', !!(await p.$('#nav a[data-v="finanzas"].on')));
   await ir('torneos'); paso('Torneos', !!(await p.$('[data-t]')));
   await ir('inscripciones'); await ir('mas'); await ir('config');
+  await ir('apoderados');
+  paso('Apoderados: lista de familias', (await p.$$('[data-pone]')).length > 0);
+  await p.click('#por-act'); await w(3000);
+  {
+    const r = await p.evaluate(() => {
+      const al = __SHEETS.Alumnas, h = al[0], iE = h.indexOf('Email_Apoderado'), iS = h.indexOf('Estado'), iN = h.indexOf('Nombre'), iId = h.indexOf('ID_Alumna');
+      const fam = {};
+      al.slice(1).filter(x => x[iS] === 'Activa' && x[iE]).forEach(x => { const c = String(x[iE]).toLowerCase(); (fam[c] = fam[c] || []).push(x[iN]); });
+      const files = Object.values(__FILES);
+      const otras = al.slice(1).map(x => x[iN]);
+      const malas = files.filter(f => {
+        const email = f.viewers[0], mias = fam[email] || [];
+        const pagos = f.tabs.find(t => t.nombre === 'Pagos').datos.slice(4).map(r => r[1]).filter(Boolean);
+        return f.viewers.length !== 1 || pagos.some(n => n !== 'Sin registros por ahora' && mias.indexOf(n) < 0);
+      });
+      const tabs = files[0] ? files[0].tabs.map(t => t.nombre).join(',') : '';
+      const notas = files.some(f => JSON.stringify(f.tabs).indexOf('Dijo que paga') >= 0);
+      return { nFam: Object.keys(fam).length, nFiles: files.length, malas: malas.length, tabs, notas, carpeta: files[0] && files[0].carpeta };
+    });
+    paso('Una planilla por familia, en la carpeta del portal', r.nFiles === r.nFam && r.nFam > 0 && r.carpeta === 'Kraken - Portal apoderados');
+    paso('Cada planilla compartida solo con su correo y solo con sus hijas', r.malas === 0);
+    paso('Pestañas Resumen, Pagos, Asistencia, Partidos y Ficha', r.tabs === 'Resumen,Pagos,Asistencia,Partidos,Ficha');
+    paso('Sin notas internas en las planillas', !r.notas);
+    paso('Tabla al día', (await p.$$eval('#main tbody .pill.ok', x => x.length)) === r.nFam);
+  }
+  await p.click('#por-diario'); await w(800);
+  paso('Actualización de cada noche activada', await p.evaluate(() => __TRIGGERS.length === 1 && __TRIGGERS[0].getHandlerFunction() === 'portalDiario'));
+  {
+    const ok = await p.evaluate(async () => {
+      const call = (f, ...a) => new Promise(res => google.script.run.withSuccessHandler(x => res(x))[f](...a));
+      const h = __SHEETS.Alumnas[0], iE = h.indexOf('Email_Apoderado'), iS = h.indexOf('Estado');
+      const fila = __SHEETS.Alumnas.find((x, i) => i && x[iS] === 'Activa' && x[iE] && __SHEETS.Alumnas.filter(y => y[iE] === x[iE] && y[iS] === 'Activa').length === 1);
+      const email = String(fila[iE]).toLowerCase(), f = Object.values(__FILES).find(z => z.viewers.indexOf(email) >= 0);
+      fila[iS] = 'Retirada';
+      await call('api_portalActualizar', '');
+      const quitado = f.viewers.indexOf(email) < 0;
+      fila[iS] = 'Activa';
+      await call('api_portalActualizar', email);
+      return quitado && f.viewers.indexOf(email) >= 0 && Object.values(__FILES).length === Object.values(__FILES).length;
+    });
+    paso('Alumna retirada: su familia pierde el acceso (y lo recupera al volver)', ok);
+  }
   paso('Sin errores de JavaScript', errs.length === 0);
   if (errs.length) console.log(errs);
   await b.close();

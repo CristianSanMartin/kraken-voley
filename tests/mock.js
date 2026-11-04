@@ -19,8 +19,30 @@ function __mkSheet(name){
   };
   return sh;
 }
-var __SS = { getSheetByName:function(n){ return __SHEETS[n]? __mkSheet(n):null; }, getSheets:function(){ return Object.keys(__SHEETS).map(__mkSheet); } };
-var SpreadsheetApp = { openById:function(){ return __SS; }, getActiveSpreadsheet:function(){ return __SS; }, getUi:function(){ throw new Error('no ui'); } };
+var __SS = { getSheetByName:function(n){ return __SHEETS[n]? __mkSheet(n):null; }, getSheets:function(){ return Object.keys(__SHEETS).map(__mkSheet); },
+  insertSheet:function(n){ __SHEETS[n]=[]; return __mkSheet(n); } };
+// Planillas de familias (portal de apoderados): guardan lo escrito; el formato se ignora.
+var __FILES = {};
+function __encadenar(o){ return new Proxy(o, { get:function(t,k){ return k in t ? t[k] : function(){ return this; }; } }); }
+function __mkPlanilla(nombre){
+  var id='SS'+(++__DRIVE.n), f={ id:id, nombre:nombre, tabs:[], viewers:[] };
+  function hoja(n){ var h={ nombre:n, datos:[] };
+    h.api=__encadenar({ getName:function(){return n;}, clear:function(){ h.datos=[]; return h.api; },
+      getRange:function(r,c,nr,nc){ return __encadenar({ setValues:function(v){ for(var i=0;i<v.length;i++){ h.datos[r-1+i]=h.datos[r-1+i]||[]; for(var j=0;j<v[i].length;j++) h.datos[r-1+i][c-1+j]=v[i][j]; } return this; } }); } });
+    return h; }
+  f.tabs.push(hoja('Hoja 1'));
+  f.ss=__encadenar({ getId:function(){return id;}, getUrl:function(){ return 'https://docs.google.com/spreadsheets/d/'+id; },
+    getSheetByName:function(n){ var h=f.tabs.filter(function(x){return x.nombre===n;})[0]; return h?h.api:null; },
+    insertSheet:function(n,i){ var h=hoja(n); f.tabs.splice(i==null?f.tabs.length:i,0,h); return h.api; },
+    getSheets:function(){ return f.tabs.map(function(x){return x.api;}); },
+    deleteSheet:function(s){ f.tabs=f.tabs.filter(function(x){return x.api!==s;}); } });
+  f.file={ getId:function(){return id;}, moveTo:function(c){ f.carpeta=c.getName(); return f.file; },
+    getViewers:function(){ return f.viewers.map(function(e){ return { getEmail:function(){return e;} }; }); },
+    addViewer:function(e){ if(!/@/.test(e)) throw new Error('Correo inválido'); f.viewers.push(e); return f.file; },
+    removeViewer:function(e){ f.viewers=f.viewers.filter(function(x){return x!==e;}); return f.file; } };
+  __FILES[id]=f; return f;
+}
+var SpreadsheetApp = { openById:function(id){ if(__FILES[id]) return __FILES[id].ss; throw new Error('No existe '+id); }, create:function(n){ return __mkPlanilla(n).ss; }, getActiveSpreadsheet:function(){ return __SS; }, getUi:function(){ throw new Error('no ui'); } };
 var PropertiesService = { getScriptProperties:function(){ return { getProperty:function(){ return null; } }; } };
 var Utilities = { formatDate:function(d,tz,f){ function p(n){return ('0'+n).slice(-2);} return f.replace('yyyy',d.getFullYear()).replace('MM',p(d.getMonth()+1)).replace('dd',p(d.getDate())).replace('HH',p(d.getHours())).replace('mm',p(d.getMinutes())); } };
 function __carpeta(nombre){ var id='F'+(++__DRIVE.n); var c={ id:id, nombre:nombre, sub:[], archivos:[],
@@ -31,13 +53,17 @@ function __carpeta(nombre){ var id='F'+(++__DRIVE.n); var c={ id:id, nombre:nomb
   __DRIVE.porId[id]=c; return c; }
 var __DRIVE = { n:0, porId:{}, raiz:null };
 __DRIVE.raiz = __carpeta('Mi unidad');
-var DriveApp = { getFolderById:function(id){ if(!__DRIVE.porId[id]) throw new Error('no existe'); return __DRIVE.porId[id]; },
+var DriveApp = { getFileById:function(id){ if(!__FILES[id]) throw new Error('no existe'); return __FILES[id].file; }, getFolderById:function(id){ if(!__DRIVE.porId[id]) throw new Error('no existe'); return __DRIVE.porId[id]; },
   getFoldersByName:function(n){ return __DRIVE.raiz.getFoldersByName(n); }, createFolder:function(n){ return __DRIVE.raiz.createFolder(n); } };
 Utilities.newBlob = function(bytes, tipo, nombre){ return { bytes:bytes, tipo:tipo, nombre:nombre }; };
 Utilities.base64Decode = function(s){ return atob(s); };
 var Session = { getActiveUser:function(){ return { getEmail:function(){ return 'c.snmartin@gmail.com'; } }; } };
 var LockService = { getScriptLock:function(){ return { waitLock:function(){}, releaseLock:function(){} }; } };
-var ScriptApp = { getService:function(){ return { getUrl:function(){ return 'https://script.google.com/macros/s/X/exec'; } }; } };
+var __TRIGGERS = [];
+var ScriptApp = { getService:function(){ return { getUrl:function(){ return 'https://script.google.com/macros/s/X/exec'; } }; },
+  getProjectTriggers:function(){ return __TRIGGERS.slice(); },
+  deleteTrigger:function(t){ __TRIGGERS=__TRIGGERS.filter(function(x){return x!==t;}); },
+  newTrigger:function(fn){ var b=__encadenar({ create:function(){ var t={ getHandlerFunction:function(){return fn;} }; __TRIGGERS.push(t); return t; } }); return { timeBased:function(){ return b; } }; } };
 var __calls = [];
 var google = { script: { run: (function mk(ok, fail){
   return new Proxy({}, { get:function(_, k){
