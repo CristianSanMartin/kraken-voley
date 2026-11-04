@@ -5,7 +5,7 @@
  * Code.gs: punto de entrada de la web y utilidades de plantillas.
  */
 
-var APP_VERSION = '1.4.0';
+var APP_VERSION = '1.4.1';
 
 function doGet(e) {
   var t = HtmlService.createTemplateFromFile('Index');
@@ -14,6 +14,18 @@ function doGet(e) {
     .setTitle('Kraken Vóley')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/**
+ * Para dar los permisos de Google de una vez (Drive, planillas y activadores):
+ * en Kraken_BD > Extensiones > Apps Script, elegir "autorizar" arriba y apretar Ejecutar.
+ * Google muestra la pantalla de permisos; se aceptan y listo. No cambia ningún dato.
+ */
+function autorizar() {
+  SpreadsheetApp.getActiveSpreadsheet();
+  DriveApp.getRootFolder();
+  ScriptApp.getProjectTriggers();
+  return 'Permisos listos';
 }
 
 /** Inserta el contenido de otro archivo HTML (Styles, App...). */

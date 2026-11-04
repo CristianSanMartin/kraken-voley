@@ -226,8 +226,10 @@ function portalActualizar_(soloEmail) {
 /** Lo ejecuta el activador diario (de madrugada). Si quedan pendientes, sigue en la siguiente vuelta. */
 function portalDiario() { portalActualizar_(); }
 
+/** true/false según el activador diario; null si Google aún no da el permiso de activadores (falta correr "autorizar"). */
 function portalDiarioActivo_() {
-  return ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === FN_PORTAL_DIARIO; });
+  try { return ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === FN_PORTAL_DIARIO; }); }
+  catch (e) { return null; }
 }
 
 /* ---------- Llamadas desde la web ---------- */

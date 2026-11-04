@@ -727,7 +727,12 @@ R.apoderados = function () {
     var nAlDia = d.familias.filter(function (f) { return f.estado === 'Al día'; }).length;
     var h = cabecera('Apoderados', 'Cada familia ve los pagos, la asistencia, los partidos y la ficha de sus hijas en una planilla de Google compartida solo con su Gmail',
       '<button class="btn pri" id="por-act">Actualizar planillas</button>');
-    h += '<div class="note ' + (d.diario ? '' : 'warn ') + 'row" style="margin-bottom:16px"><span>' + (d.diario
+    if (d.diario === null) h += '<div class="note warn" style="margin-bottom:16px"><b>Falta darle un permiso a Google</b> para que las planillas se actualicen solas cada noche. Es una sola vez:' +
+      '<ol style="margin:8px 0 0;padding-left:20px"><li>Abre tu planilla <b>Kraken_BD</b> y entra a <b>Extensiones → Apps Script</b>.</li>' +
+      '<li>Arriba, al lado del botón <b>Ejecutar</b>, elige la función <b>autorizar</b> y aprieta <b>Ejecutar</b>.</li>' +
+      '<li>Google te muestra una ventana: elige tu cuenta, aprieta <b>Configuración avanzada</b> y luego <b>Ir a … (no seguro)</b> si aparece (es tu propio programa, es seguro), y luego <b>Permitir</b>.</li>' +
+      '<li>Vuelve aquí y recarga la página.</li></ol></div>';
+    else h += '<div class="note ' + (d.diario ? '' : 'warn ') + 'row" style="margin-bottom:16px"><span>' + (d.diario
       ? 'Las planillas se actualizan solas <b>cada noche</b>. Si haces un cambio y quieres que lo vean altiro, aprieta "Actualizar planillas".'
       : 'La actualización automática de cada noche está <b>apagada</b>: las familias solo verán los cambios cuando aprietes "Actualizar planillas".') +
       '</span><button class="btn sm right ' + (d.diario ? '' : 'pri') + '" id="por-diario">' + (d.diario ? 'Apagar' : 'Activar cada noche') + '</button></div>';
@@ -762,7 +767,7 @@ R.apoderados = function () {
       }).catch(function (e) { ocupado(btn, false); fallo(e); });
     }
     $('#por-act').onclick = function () { actualizar($('#por-act')); };
-    $('#por-diario').onclick = function () {
+    if ($('#por-diario')) $('#por-diario').onclick = function () {
       var b = $('#por-diario'); ocupado(b, true);
       api('api_portalDiario', !d.diario).then(function () { toast(d.diario ? 'Actualización automática apagada' : 'Listo: se actualizarán cada noche'); R.apoderados(); }).catch(function (e) { ocupado(b, false); fallo(e); });
     };
