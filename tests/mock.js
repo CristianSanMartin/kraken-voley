@@ -61,7 +61,7 @@ var Session = { getActiveUser:function(){ return { getEmail:function(){ return '
 var LockService = { getScriptLock:function(){ return { waitLock:function(){}, releaseLock:function(){} }; } };
 var __TRIGGERS = [];
 var ScriptApp = { getService:function(){ return { getUrl:function(){ return 'https://script.google.com/macros/s/X/exec'; } }; },
-  getProjectTriggers:function(){ return __TRIGGERS.slice(); },
+  getProjectTriggers:function(){ return __TRIGGERS.slice(); }, requireAllScopes:function(){}, AuthMode:{ FULL:'FULL' },
   deleteTrigger:function(t){ __TRIGGERS=__TRIGGERS.filter(function(x){return x!==t;}); },
   newTrigger:function(fn){ var b=__encadenar({ create:function(){ var t={ getHandlerFunction:function(){return fn;} }; __TRIGGERS.push(t); return t; } }); return { timeBased:function(){ return b; } }; } };
 var __calls = [];

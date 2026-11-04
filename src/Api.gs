@@ -11,7 +11,14 @@ var HOJAS_LECTURA = ['Camisetas', 'Camisetas_Pagos', 'Compras_Detalle', 'Club', 
 function ok_(data) { return JSON.parse(JSON.stringify({ ok: true, data: data })); }
 function run_(fn) {
   try { return ok_(fn()); }
-  catch (e) { return { ok: false, error: String(e && e.message || e) }; }
+  catch (e) {
+    var msg = String(e && e.message || e);
+    if (/No cuentas con el permiso|not have permission|authorization is required|auth\/(drive|script)/i.test(msg)) {
+      msg = 'Falta un permiso de Google. En Kraken_BD entra a Extensiones → Apps Script, abre Code.gs, elige la función "autorizar", ' +
+        'aprieta Ejecutar y en la ventana de Google marca TODAS las casillas antes de Permitir. (Detalle: ' + msg + ')';
+    }
+    return { ok: false, error: msg };
+  }
 }
 
 function num_(v) { var n = Number(v); return isNaN(n) ? 0 : n; }
