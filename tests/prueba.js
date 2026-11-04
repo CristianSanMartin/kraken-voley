@@ -18,6 +18,9 @@ const path = require('path');
   paso('Inicio carga', !!(await p.$('.kpi')));
   const cum = await p.evaluate(() => new Promise(r => google.script.run.withSuccessHandler(x => r(x.data.cumpleanos)).api_dashboard('2026-01')));
   paso('Cumpleaños: solo próximos 15 días, en orden', cum.every((c, i) => c.dias >= 0 && c.dias <= 15 && (!i || cum[i - 1].dias <= c.dias)));
+  { const r = await p.evaluate(() => new Promise(res => google.script.run.withSuccessHandler(x => res(x.data.asistencia.map(m => m.mes)))
+      .api_alumnaDetalle(__SHEETS.Asistencia[1][2])));
+    paso('Ficha: asistencia solo desde noviembre 2026', r.every(m => m >= '2026-11')); }
   await ir('alumnas'); paso('Alumnas lista', (await p.$$('#fa-body tr[data-id]')).length > 0);
   await ir('mensualidades');
   { const g = await p.$('#gen-mes'); if (g) { await g.click(); await w(1500); } }  // el mes actual puede no estar creado aún

@@ -21,3 +21,4 @@
 - v1.2.1: Inicio muestra los cumpleaños de los próximos 15 días.
 - v1.3: botón para adjuntar el comprobante de pago (foto) al registrar un pago; se guarda en Drive > Mensualidades > "2026-11 Noviembre" y queda enlazado (📎) en la mensualidad.
 - v1.3.1: Alumnas y Finanzas conectadas: cambio de grupo/tarifa, retiro y reingreso se reflejan en las mensualidades desde el mes actual (los meses pasados no se tocan).
+- v1.3.2: la asistencia solo cuenta desde noviembre 2026 (`Config.Asistencia_Desde`, por defecto 2026-11); los registros antiguos quedan en la hoja.

@@ -5,7 +5,7 @@
  * Code.gs: punto de entrada de la web y utilidades de plantillas.
  */
 
-var APP_VERSION = '1.3.1';
+var APP_VERSION = '1.3.2';
 
 function doGet(e) {
   var t = HtmlService.createTemplateFromFile('Index');

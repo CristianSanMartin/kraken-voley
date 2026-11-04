@@ -19,6 +19,11 @@ function mesAnterior_(mes, k) {
   var p = mes.split('-'); var d = new Date(Number(p[0]), Number(p[1]) - 1 - (k == null ? 1 : k), 1);
   return fmtMes_(d);
 }
+/** Asistencia que cuenta en la web: desde Config.Asistencia_Desde (por defecto noviembre 2026). Los registros antiguos del Excel quedan en la hoja, pero no se muestran. */
+function asistencia_(cfg) {
+  var desde = String((cfg || config_()).Asistencia_Desde || '2026-11').slice(0, 7);
+  return leer_('Asistencia').rows.filter(function (r) { return String(r.Fecha || '').slice(0, 7) >= desde; });
+}
 function diaLimite_(cfg) { return num_(cfg.Dia_Limite_Pago) || 10; }
 function estaAtrasada_(m, cfg, hoy) {
   if (ESTADOS_DEUDA.indexOf(m.Estado) < 0) return false;
@@ -85,7 +90,7 @@ function api_dashboard(mes) {
     var caja = cajaMes_(mes, mens);
 
     // Asistencia del mes: inasistencias injustificadas
-    var asis = leer_('Asistencia').rows.filter(function (r) { return String(r.Fecha).slice(0, 7) === mes; });
+    var asis = asistencia_(cfg).filter(function (r) { return String(r.Fecha).slice(0, 7) === mes; });
     var maxInj = num_(cfg.Max_Inasistencias_Injustificadas_Mes) || 3;
     var inj = {};
     asis.forEach(function (r) { if (r.Estado === 'Injustificada') inj[r.ID_Alumna] = (inj[r.ID_Alumna] || 0) + 1; });
@@ -150,7 +155,7 @@ function api_alumnaDetalle(id) {
     var mens = leer_('Mensualidades').rows.filter(function (m) { return m.ID_Alumna === id; })
       .sort(function (x, y) { return x.Mes < y.Mes ? 1 : -1; });
     mens.forEach(function (m) { m.atrasada = estaAtrasada_(m, cfg, hoy); delete m._row; });
-    var asis = leer_('Asistencia').rows.filter(function (r) { return r.ID_Alumna === id; });
+    var asis = asistencia_(cfg).filter(function (r) { return r.ID_Alumna === id; });
     var porMes = {};
     asis.forEach(function (r) {
       var k = String(r.Fecha).slice(0, 7); porMes[k] = porMes[k] || { p: 0, t: 0, inj: 0 };
@@ -385,7 +390,7 @@ function api_agregarMensualidad(idAlumna, mes) {
 function api_asistencia(fecha) {
   return run_(function () {
     var alumnas = leer_('Alumnas').rows.filter(function (a) { return a.Estado === 'Activa'; });
-    var asis = leer_('Asistencia').rows;
+    var asis = asistencia_();
     var delDia = {};
     asis.forEach(function (r) { if (r.Fecha === fecha) delDia[r.ID_Alumna] = r; });
     var mes = fecha.slice(0, 7);
