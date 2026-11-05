@@ -57,6 +57,7 @@ var DriveApp = { getFileById:function(id){ if(!__FILES[id]) throw new Error('no 
   getFoldersByName:function(n){ return __DRIVE.raiz.getFoldersByName(n); }, createFolder:function(n){ return __DRIVE.raiz.createFolder(n); } };
 Utilities.newBlob = function(bytes, tipo, nombre){ return { bytes:bytes, tipo:tipo, nombre:nombre }; };
 Utilities.base64Decode = function(s){ return atob(s); };
+var __uuid = 0; Utilities.getUuid = function(){ __uuid++; return ('00000000' + __uuid.toString(16)).slice(-8) + '-aaaa-4bbb-8ccc-' + (Math.random().toString(16).slice(2) + '000000000000').slice(0, 12); };
 var Session = { getActiveUser:function(){ return { getEmail:function(){ return 'c.snmartin@gmail.com'; } }; } };
 var LockService = { getScriptLock:function(){ return { waitLock:function(){}, releaseLock:function(){} }; } };
 var __TRIGGERS = [];

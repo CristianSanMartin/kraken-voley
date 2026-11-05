@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kraken Vóley · Apoderados</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Una columna pensada para el celular: banda morada con el logo, selector de hija, pestañas y tarjetas. */
+:root{
+  --kr-900:#17142e; --kr-800:#211d42; --kr-700:#2e2862; --kr-600:#3f3a8f; --kr-500:#5b57c9; --kr-300:#a9a7ef; --kr-100:#e9e8fb; --kr-50:#f4f4fd;
+  --ink:#1b1a24; --ink-2:#4a4859; --ink-3:#7b7990; --line:#e6e5ef; --bg:#f6f6fa; --card:#fff;
+  --ok:#14804a; --ok-bg:#e3f5ea; --warn:#a15c00; --warn-bg:#fff2dc; --bad:#b4232c; --bad-bg:#fde7e8; --info:#2459b8; --info-bg:#e5eefc; --mute-bg:#efeff4;
+  --display:Outfit,Inter,system-ui,sans-serif; --body:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px}
+.top{background:linear-gradient(160deg,var(--kr-900),var(--kr-700));color:#fff;padding:22px 0 64px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand img{width:40px;height:40px;border-radius:10px}
+.brand b{font-family:var(--display);letter-spacing:.08em;font-size:17px;display:block;line-height:1}
+.brand small{color:var(--kr-300);font-size:12px;letter-spacing:.03em}
+.hola{margin-top:22px}
+.hola h1{font-size:26px;font-weight:700}
+.hola p{margin:4px 0 0;color:#d9d8f3;font-size:14px}
+.main{margin-top:-44px;padding-bottom:40px;display:flex;flex-direction:column;gap:14px}
+.card{background:var(--card);border-radius:16px;box-shadow:0 1px 2px rgba(23,20,46,.06),0 6px 20px rgba(23,20,46,.07);padding:18px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+.chip{border:0;border-radius:99px;padding:9px 16px;background:rgba(255,255,255,.95);color:var(--kr-700);font:600 14px var(--body);cursor:pointer;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.chip.on{background:var(--kr-500);color:#fff}
+.jug{display:flex;align-items:center;gap:14px}
+.dorsal{width:58px;height:58px;border-radius:14px;background:var(--kr-100);color:var(--kr-600);display:grid;place-items:center;font:800 24px var(--display);flex:none}
+.jug h2{font-size:21px}
+.jug .meta{color:var(--ink-3);font-size:14px}
+.tabs{display:flex;gap:4px;overflow-x:auto;background:var(--card);border-radius:14px;padding:5px;box-shadow:0 1px 2px rgba(23,20,46,.06);position:sticky;top:0;z-index:5}
+.tabs button{flex:1 1 0;min-width:max-content;border:0;background:none;padding:9px 6px;border-radius:10px;font:600 13.5px var(--body);color:var(--ink-3);cursor:pointer}
+.tabs button.on{background:var(--kr-600);color:#fff}
+.tabs button:focus-visible,.chip:focus-visible,.btn:focus-visible{outline:3px solid var(--kr-300);outline-offset:2px}
+.lbl{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3)}
+.big{font:700 30px var(--display);font-variant-numeric:tabular-nums;margin-top:2px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sp{justify-content:space-between}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:3px 11px;font-size:13px;font-weight:600;background:var(--mute-bg);color:var(--ink-2);white-space:nowrap}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.bad{background:var(--bad-bg);color:var(--bad)}
+.pill.info{background:var(--info-bg);color:var(--info)} .pill.kr{background:var(--kr-100);color:var(--kr-600)}
+.note{border-radius:12px;padding:12px 14px;font-size:14px;background:var(--kr-50);color:var(--ink-2)}
+.note.bad{background:var(--bad-bg);color:var(--bad)} .note.ok{background:var(--ok-bg);color:var(--ok)}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.stat{background:var(--bg);border-radius:12px;padding:12px 8px;text-align:center}
+.stat b{display:block;font:700 26px var(--display);font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--ink-3)}
+.list{display:flex;flex-direction:column}
+.li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.li:first-child{border-top:0}
+.li .t{min-width:0}
+.li .t b{display:block;font-weight:600}
+.li .t small{color:var(--ink-3);font-size:13px}
+.num{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:9px 14px;font:600 14px var(--body);color:var(--kr-600);cursor:pointer}
+.btn.pri{background:var(--kr-600);border-color:var(--kr-600);color:#fff}
+.trans{white-space:pre-wrap;font-size:14px;color:var(--ink-2);background:var(--bg);border-radius:12px;padding:12px;margin:10px 0}
+dl{margin:0;display:grid;grid-template-columns:minmax(0,42%) minmax(0,1fr);gap:0}
+dt,dd{padding:9px 0;border-top:1px solid var(--line);margin:0;font-size:14px}
+dt{color:var(--ink-3)} dd{font-weight:500;overflow-wrap:anywhere}
+dt:first-of-type,dd:first-of-type{border-top:0}
+.muted{color:var(--ink-3)} .small{font-size:13px}
+.empty{color:var(--ink-3);text-align:center;padding:18px 0;font-size:14px}
+.pie{text-align:center;color:var(--ink-3);font-size:13px;padding:8px 0 0}
+.solo{min-height:100vh;display:grid;place-items:center;padding:24px}
+.solo .card{max-width:420px;text-align:center}
+.solo img{width:72px;height:72px;border-radius:16px;margin-bottom:10px}
+@media (prefers-reduced-motion:no-preference){.panel{animation:entra .18s ease-out}@keyframes entra{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+var DATOS = <?!= datos ?>;
+var LOGO = '<?!= logo ?>';
+
+function esc(s) { return s == null ? '' : String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function money(n) { return '$' + Math.round(Number(n) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+function pill(estado) {
+  var c = { 'Pagado': 'ok', 'Pendiente': 'warn', 'Atrasada': 'bad', 'Promete pagar': 'info', 'Becada': 'kr', 'Sin cobro': '', 'Clase de prueba': 'kr', 'Retirada': '',
+    'Presente': 'ok', 'Justificada': 'info', 'Injustificada': 'bad', 'Ganado': 'ok', 'Perdido': 'bad', 'Próximo': 'kr' }[estado];
+  return '<span class="pill ' + (c || '') + '">' + esc(estado) + '</span>';
+}
+
+function pantallaSola(titulo, texto) {
+  document.getElementById('app').innerHTML = '<div class="solo"><div class="card">' + (LOGO ? '<img src="' + LOGO + '" alt="Kraken Vóley">' : '') +
+    '<h2>' + titulo + '</h2><p class="muted">' + texto + '</p></div></div>';
+}
+
+var S = { i: 0, tab: 'resumen' };
+
+function pintar() {
+  var f = DATOS.familia, a = f.alumnas[S.i];
+  var nombre = (f.apoderado || '').split(' ')[0];
+  var h = '<header class="top"><div class="wrap"><div class="brand">' + (LOGO ? '<img src="' + LOGO + '" alt="">' : '') +
+    '<div><b>KRAKEN VÓLEY</b><small>Página de apoderados</small></div></div>' +
+    '<div class="hola"><h1>Hola' + (nombre ? ', ' + esc(nombre) : '') + '</h1><p>Aquí ves los pagos, la asistencia y los partidos de ' +
+    (f.alumnas.length > 1 ? 'tus hijas' : esc(a.nombre)) + '.</p></div>' +
+    (f.alumnas.length > 1 ? '<div class="chips" style="margin-top:16px">' + f.alumnas.map(function (x, i) { return '<button class="chip' + (i === S.i ? ' on' : '') + '" data-i="' + i + '">' + esc(x.nombre) + '</button>'; }).join('') + '</div>' : '') +
+    '</div></header><main class="wrap main">';
+  h += '<section class="card jug"><div class="dorsal">' + esc(a.dorsal || a.nombre.charAt(0)) + '</div><div><h2>' + esc(a.nombre) + '</h2><div class="meta">' +
+    esc([a.grupo ? 'Grupo ' + a.grupo : '', a.posicion].filter(String).join(' · ')) + '</div></div></section>';
+  h += '<nav class="tabs" aria-label="Secciones">' + [['resumen', 'Resumen'], ['pagos', 'Pagos'], ['asistencia', 'Asistencia'], ['partidos', 'Partidos'], ['ficha', 'Ficha']]
+    .map(function (t) { return '<button data-t="' + t[0] + '" class="' + (S.tab === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('') + '</nav>';
+  h += '<div class="panel" style="display:flex;flex-direction:column;gap:14px">' + PANEL[S.tab](a, f) + '</div>';
+  h += '<p class="pie">Actualizado el ' + esc(f.actualizado) + '. Esta página es solo para tu familia: no reenvíes el enlace.</p></main>';
+  document.getElementById('app').innerHTML = h;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-i]'), function (b) { b.onclick = function () { S.i = Number(b.dataset.i); pintar(); }; });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-t]'), function (b) { b.onclick = function () { S.tab = b.dataset.t; pintar(); }; });
+  var cp = document.getElementById('copiar');
+  if (cp) cp.onclick = function () {
+    var txt = f.transferencia, ok = function () { cp.textContent = 'Copiado ✓'; };
+    try { navigator.clipboard.writeText(txt).then(ok, function () { seleccionar(); }); } catch (e) { seleccionar(); }
+  };
+}
+function seleccionar() { var el = document.querySelector('.trans'); if (!el) return; var r = document.createRange(); r.selectNodeContents(el); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); }
+
+function tarjetaMes(a, f) {
+  var m = a.mes;
+  var h = '<section class="card"><div class="row sp"><div><div class="lbl">Mensualidad de ' + esc(a.mesLabel) + '</div><div class="big">' + money(m ? m.monto : a.tarifa) + '</div></div>' +
+    (m ? pill(m.estado) : '<span class="pill">Aún no se registra</span>') + '</div>';
+  if (m && m.estado === 'Pagado') h += '<p class="small muted" style="margin:8px 0 0">Pagada' + (m.fecha ? ' el ' + esc(m.fecha) : '') + (m.medio ? ' · ' + esc(m.medio) : '') + (m.comprobante ? ' · comprobante recibido ✓' : '') + '. ¡Gracias!</p>';
+  else h += '<p class="small muted" style="margin:8px 0 0">Se paga dentro de los primeros ' + f.diaLimite + ' días de cada mes.</p>';
+  if (a.deuda > 0) h += '<div class="note bad" style="margin-top:12px">Total por pagar: <b>' + money(a.deuda) + '</b>. Si ya pagaste, envíale el comprobante a Cristian.</div>';
+  if (a.deuda > 0 || (m && m.estado !== 'Pagado')) h += datosTransferencia(f);
+  return h + '</section>';
+}
+function datosTransferencia(f) {
+  if (!f.transferencia) return '';
+  return '<div style="margin-top:14px"><div class="lbl">Datos para transferir</div><div class="trans">' + esc(f.transferencia) + '</div><button class="btn" id="copiar">Copiar datos</button></div>';
+}
+function tarjetaAsistencia(a) {
+  var s = a.asistencia, d = s.delMes;
+  return '<section class="card"><div class="lbl">Asistencia de ' + esc(s.mesLabel) + '</div><div class="stats">' +
+    '<div class="stat"><b style="color:var(--ok)">' + d.presentes + '</b><span>Presente</span></div>' +
+    '<div class="stat"><b style="color:var(--info)">' + d.justificadas + '</b><span>Justificadas</span></div>' +
+    '<div class="stat"><b style="color:' + (d.injustificadas ? 'var(--bad)' : 'inherit') + '">' + d.injustificadas + '</b><span>Injustificadas</span></div></div>' +
+    (s.alerta ? '<div class="note bad" style="margin-top:12px">Este mes lleva más de ' + DATOS.familia.maxInj + ' inasistencias injustificadas. Conversemos para ver cómo seguir (Estatutos 5.2).</div>' : '') + '</section>';
+}
+function listaPartidos(ps, max) {
+  if (!ps.length) return '<div class="empty">No hay partidos de torneos en curso.</div>';
+  return '<div class="list">' + ps.slice(0, max || ps.length).map(function (p) {
+    return '<div class="li"><div class="t"><b>' + esc(p.rival ? 'vs ' + p.rival : 'Rival por confirmar') + '</b><small>' + esc([p.fecha, p.torneo, p.serie, p.etapa].filter(String).join(' · ')) + '</small></div>' +
+      (p.resultado ? '<span>' + pill(p.resultado) + (p.sets ? ' <span class="num small">' + esc(p.sets) + '</span>' : '') + '</span>' : p.proximo ? pill('Próximo') : '') + '</div>';
+  }).join('') + '</div>';
+}
+
+var PANEL = {
+  resumen: function (a, f) {
+    var prox = a.partidos.filter(function (p) { return p.proximo; });
+    return tarjetaMes(a, f) + tarjetaAsistencia(a) +
+      '<section class="card"><div class="lbl" style="margin-bottom:4px">Próximos partidos</div>' + (prox.length ? listaPartidos(prox, 3) : '<div class="empty">Por ahora no hay partidos programados.</div>') + '</section>';
+  },
+  pagos: function (a, f) {
+    return tarjetaMes(a, f) + '<section class="card"><div class="lbl" style="margin-bottom:4px">Historial de mensualidades</div>' +
+      (a.pagos.length ? '<div class="list">' + a.pagos.map(function (p) {
+        return '<div class="li"><div class="t"><b>' + esc(p.mesLabel) + '</b><small>' + esc(p.estado === 'Pagado' ? [p.fecha ? 'Pagada el ' + p.fecha : 'Pagada', p.medio].filter(String).join(' · ') : '') + (p.comprobante ? ' · comprobante ✓' : '') + '</small></div>' +
+          '<div class="row" style="flex-wrap:nowrap"><span class="num">' + money(p.pagado || p.monto) + '</span>' + pill(p.estado) + '</div></div>';
+      }).join('') + '</div>' : '<div class="empty">Aún no hay mensualidades registradas.</div>') + '</section>';
+  },
+  asistencia: function (a) {
+    var l = a.asistencia.lista;
+    return tarjetaAsistencia(a) + '<section class="card"><div class="lbl" style="margin-bottom:4px">Entrenamientos</div>' +
+      (l.length ? '<div class="list">' + l.map(function (r) { return '<div class="li"><div class="t"><b>Sábado ' + esc(r.fecha) + '</b>' + (r.motivo ? '<small>' + esc(r.motivo) + '</small>' : '') + '</div>' + pill(r.estado) + '</div>'; }).join('') + '</div>'
+        : '<div class="empty">Todavía no hay entrenamientos registrados.</div>') + '</section>';
+  },
+  partidos: function (a) {
+    return '<section class="card"><div class="lbl" style="margin-bottom:4px">Torneos en curso</div>' + listaPartidos(a.partidos) +
+      '<p class="small muted" style="margin:10px 0 0">Las fechas y rivales pueden cambiar: confírmalos con Cristian.</p></section>' +
+      (a.cuotas.length ? '<section class="card"><div class="lbl" style="margin-bottom:4px">Cuotas de torneo</div><div class="list">' + a.cuotas.map(function (c) {
+        return '<div class="li"><div class="t"><b>' + esc(c.concepto) + '</b><small>' + esc(c.torneo) + '</small></div><span class="num">' + money(c.monto) + '</span></div>';
+      }).join('') + '</div></section>' : '');
+  },
+  ficha: function (a) {
+    return '<section class="card"><div class="lbl" style="margin-bottom:8px">Datos de la ficha</div><dl>' +
+      a.ficha.map(function (x) { return '<dt>' + esc(x[0]) + '</dt><dd>' + (x[1] ? esc(x[1]) : '<span class="muted">Falta</span>') + '</dd>'; }).join('') + '</dl>' +
+      '<div class="note" style="margin-top:14px">¿Algo está mal o falta? Avísale a Cristian por WhatsApp y lo corrige.</div></section>';
+  }
+};
+
+if (DATOS.ok) pintar();
+else if (DATOS.motivo === 'inicio') pantallaSola('Página de apoderados', 'Para entrar, abre el enlace personal que te envió Cristian por WhatsApp.');
+else if (DATOS.motivo === 'enlace') pantallaSola('Este enlace no funciona', 'Puede que haya cambiado. Pídele a Cristian tu enlace nuevo por WhatsApp.');
+else pantallaSola('No pudimos cargar la página', 'Intenta de nuevo en unos minutos.');
+</script>
+</body>
+</html>

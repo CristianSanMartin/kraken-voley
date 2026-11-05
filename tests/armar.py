@@ -28,3 +28,13 @@ prev = prev.replace('<title>Kraken Vóley</title>', '<title>Kraken Vóley (vista
 prev = prev.replace('<div id="modal-root"></div>', AVISO + '<div id="modal-root"></div>', 1)
 (T / 'vista_previa.html').write_text(prev)
 print('tests/vista_previa.html listo')
+
+# Página de apoderados (portal/) con la familia de ejemplo con más datos, calculada con el mismo código de la web.
+pag = (RAIZ / 'portal' / 'Pagina.html').read_text()
+pag = pag.replace('<base target="_top">', '')
+pag = pag.replace("var LOGO = '<?!= logo ?>';", "var LOGO = " + json.dumps((RAIZ / 'portal' / 'Logo.html').read_text().strip()) + ";")
+calc = '<script>var __DATA=' + json.dumps(datos, ensure_ascii=False) + ';\n' + mock + '\n' + gs + '\n</script>'
+pag = pag.replace('<div id="app"></div>', '<div id="app"></div>' + calc, 1)
+pag = pag.replace('var DATOS = <?!= datos ?>;', "var DATOS = location.hash === '#sin' ? { ok: false, motivo: 'enlace' } : { ok: true, familia: portalVistaPrevia_() };")
+(T / 'portal_previa.html').write_text(pag)
+print('tests/portal_previa.html listo')

@@ -14,3 +14,4 @@ Baja la última versión de este repositorio y la publica. La primera vez ademá
 - `src/` — código de la web (`Code.gs`, `Db.gs`, `Api.gs`, `Index.html`, `Styles.html`, `App.html`)
 - `actualizar.ps1` — lo que ejecuta el actualizador
 - `VERSION` — versión publicada
+- `portal/` — página de apoderados (segunda web, se abre con el enlace personal de cada familia)

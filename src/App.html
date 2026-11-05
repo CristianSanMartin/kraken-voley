@@ -720,67 +720,59 @@ R.inscripciones = function () {
   }).catch(fallo);
 };
 
-/* ---------- APODERADOS (planilla de Google por familia) ---------- */
+/* ---------- APODERADOS (enlace personal a la página de apoderados) ---------- */
 R.apoderados = function () {
   cargando();
   api('api_portalEstado').then(function (d) {
-    var nAlDia = d.familias.filter(function (f) { return f.estado === 'Al día'; }).length;
-    var h = cabecera('Apoderados', 'Cada familia ve los pagos, la asistencia, los partidos y la ficha de sus hijas en una planilla de Google compartida solo con su Gmail',
-      '<button class="btn pri" id="por-act">Actualizar planillas</button>');
-    if (d.diario === null) h += '<div class="note warn" style="margin-bottom:16px"><b>Falta darle un permiso a Google</b> para que las planillas se actualicen solas cada noche. Es una sola vez:' +
+    var h = cabecera('Apoderados', 'Cada familia tiene un enlace personal a su página, con los pagos, la asistencia, los partidos y la ficha de sus hijas',
+      '<button class="btn pri" id="por-act">Actualizar ahora</button>');
+    if (!d.portalUrl) h += '<div class="note warn" style="margin-bottom:16px"><b>La página de apoderados aún no está publicada.</b> Haz doble clic en "Kraken - Actualizar" en tu computador: la publica sola y aquí aparecerán los enlaces.</div>';
+    if (d.diario === null) h += '<div class="note warn" style="margin-bottom:16px"><b>Falta darle un permiso a Google</b> para que la página se actualice sola cada noche. Es una sola vez:' +
       '<ol style="margin:8px 0 0;padding-left:20px"><li>Abre tu planilla <b>Kraken_BD</b> y entra a <b>Extensiones → Apps Script</b>.</li>' +
-      '<li>Arriba, al lado del botón <b>Ejecutar</b>, elige la función <b>autorizar</b> y aprieta <b>Ejecutar</b>.</li>' +
-      '<li>Google te muestra una ventana: elige tu cuenta, aprieta <b>Configuración avanzada</b> y luego <b>Ir a … (no seguro)</b> si aparece (es tu propio programa, es seguro). Si aparece una lista de permisos, marca <b>todas las casillas</b> (o "Seleccionar todo") y aprieta <b>Permitir</b>.</li>' +
+      '<li>A la izquierda abre <b>Code.gs</b>; arriba, al lado de <b>Ejecutar</b>, elige la función <b>autorizar</b> y aprieta <b>Ejecutar</b>.</li>' +
+      '<li>En la ventana de Google elige tu cuenta (si aparece, <b>Configuración avanzada</b> → <b>Ir a … (no seguro)</b>: es tu propio programa), marca <b>todas las casillas</b> y aprieta <b>Permitir</b>.</li>' +
       '<li>Vuelve aquí y recarga la página.</li></ol></div>';
     else h += '<div class="note ' + (d.diario ? '' : 'warn ') + 'row" style="margin-bottom:16px"><span>' + (d.diario
-      ? 'Las planillas se actualizan solas <b>cada noche</b>. Si haces un cambio y quieres que lo vean altiro, aprieta "Actualizar planillas".'
-      : 'La actualización automática de cada noche está <b>apagada</b>: las familias solo verán los cambios cuando aprietes "Actualizar planillas".') +
+      ? 'La página se actualiza sola <b>cada noche</b>. Si haces un cambio y quieres que lo vean altiro, aprieta "Actualizar ahora".'
+      : 'La actualización automática de cada noche está <b>apagada</b>: las familias solo verán los cambios cuando aprietes "Actualizar ahora".') +
       '</span><button class="btn sm right ' + (d.diario ? '' : 'pri') + '" id="por-diario">' + (d.diario ? 'Apagar' : 'Activar cada noche') + '</button></div>';
-    h += '<div class="grid g3" style="margin-bottom:16px">' +
-      '<div class="card kpi"><div class="lbl">Familias con correo</div><div class="val">' + d.familias.length + '</div></div>' +
-      '<div class="card kpi"><div class="lbl">Planillas al día</div><div class="val" style="color:var(--ok)">' + nAlDia + '</div></div>' +
-      '<div class="card kpi"><div class="lbl">Alumnas sin correo</div><div class="val" style="color:' + (d.sinCorreo.length ? 'var(--warn)' : 'inherit') + '">' + d.sinCorreo.length + '</div><div class="foot">no tienen planilla</div></div></div>';
-    h += '<div class="card pad0"><div class="hd"><h3>Familias</h3><span class="small muted">El apoderado abre el enlace con la cuenta de Google de ese correo</span></div><div class="tbl-wrap"><table><thead><tr><th>Apoderado</th><th>Correo</th><th>Alumnas</th><th>Estado</th><th class="hidem">Actualizada</th><th></th></tr></thead><tbody>' +
+    h += '<div class="card pad0"><div class="hd"><h3>Familias (' + d.familias.length + ')</h3><span class="small muted">Las hermanas con el mismo teléfono de apoderado comparten enlace</span></div><div class="tbl-wrap"><table><thead><tr><th>Apoderado</th><th>Alumnas</th><th class="hidem">Teléfono</th><th class="hidem">Actualizada</th><th></th></tr></thead><tbody>' +
       (d.familias.length ? d.familias.map(function (f, i) {
-        var pill = f.estado === 'Al día' ? 'ok' : f.estado === 'Con error' ? 'bad' : 'warn';
-        return '<tr><td>' + esc(f.apoderado || '—') + '</td><td class="small">' + esc(f.email) + '</td><td>' + esc(f.alumnas.join(', ')) + '</td>' +
-          '<td data-v="' + esc(f.estado) + '"><span class="pill ' + pill + '"><span class="dot"></span>' + esc(f.estado) + '</span>' + (f.error ? '<div class="small" style="color:var(--bad)">' + esc(f.error) + '</div>' : '') + '</td>' +
-          '<td class="hidem small nowrap">' + esc(f.actualizada) + '</td><td class="nowrap" style="text-align:right">' +
-          (f.url ? '<a class="btn sm" href="' + esc(f.url) + '" target="_blank" rel="noopener" title="Abrir la planilla">' + ic('ext') + '</a> <button class="btn sm wa" data-pwa="' + i + '" title="Enviar el enlace por WhatsApp">' + ic('wa') + '</button> ' : '') +
-          '<button class="btn sm" data-pone="' + i + '">' + (f.url ? 'Actualizar' : 'Crear') + '</button></td></tr>';
-      }).join('') : '<tr><td colspan="6" class="empty">Ninguna alumna activa tiene correo de apoderado en su ficha.</td></tr>') + '</tbody></table></div></div>';
-    if (d.sinCorreo.length) {
-      h += '<div class="card pad0" style="margin-top:16px"><div class="hd"><h3>Alumnas activas sin correo de apoderado</h3><span class="small muted">Agrega el Gmail del apoderado en la ficha para crear su planilla</span></div><div class="list" style="padding:0 16px 8px">' +
-        d.sinCorreo.map(function (a) { return '<div class="li"><span><b>' + esc(a.alumna) + '</b> <span class="small muted">' + esc([a.grupo, a.apoderado].filter(String).join(' · ')) + '</span></span><button class="btn sm" data-ficha="' + esc(a.id) + '">Abrir ficha</button></div>'; }).join('') + '</div></div>';
-    }
-    if (d.sinAcceso.length) {
-      h += '<p class="small muted" style="margin-top:12px">Sin acceso (ninguna alumna activa tiene ese correo, por retiro o cambio de correo): ' + esc(d.sinAcceso.map(function (x) { return x.email; }).join(', ')) + '. Su planilla quedó en tu Drive, pero ya no la pueden abrir.</p>';
-    }
+        return '<tr><td>' + esc(f.apoderado || '—') + '</td><td>' + esc(f.alumnas.join(', ')) + '</td><td class="hidem small">' + (f.telefono ? esc(f.telefono) : '<span style="color:var(--warn)">Sin teléfono</span>') + '</td>' +
+          '<td class="hidem small nowrap">' + esc(f.actualizada || 'Aún no') + '</td><td class="nowrap" style="text-align:right">' +
+          (f.enlace ? '<a class="btn sm" href="' + esc(f.enlace) + '" target="_blank" rel="noopener" title="Ver la página de esta familia">' + ic('ext') + '</a> ' +
+            '<button class="btn sm" data-pcopy="' + i + '" title="Copiar el enlace">' + ic('copy') + '</button> ' +
+            '<button class="btn sm wa" data-pwa="' + i + '" title="Enviar el enlace por WhatsApp">' + ic('wa') + '</button> ' +
+            '<button class="btn sm ghost" data-pnew="' + i + '" title="Cambiar el enlace (el anterior deja de funcionar)">Nuevo enlace</button>'
+            : '<span class="small muted">' + (d.portalUrl ? 'Aprieta "Actualizar ahora"' : 'Falta publicar') + '</span>') + '</td></tr>';
+      }).join('') : '<tr><td colspan="5" class="empty">No hay alumnas activas.</td></tr>') + '</tbody></table></div></div>';
+    h += '<p class="small muted" style="margin-top:12px">El enlace no pide clave: cualquiera que lo tenga ve la página de esa familia. Si un apoderado lo reenvía o lo pierde, aprieta "Nuevo enlace" y mándale el nuevo. Cuando una alumna se retira, su enlace deja de funcionar en la siguiente actualización.</p>';
     $('#main').innerHTML = h;
-    function actualizar(btn, email) {
+    function actualizar(btn, fn, arg, msg) {
       ocupado(btn, true);
-      toast(email ? 'Actualizando la planilla…' : 'Actualizando planillas… puede tardar unos minutos');
-      api('api_portalActualizar', email || '').then(function (r) {
-        toast((r.creadas ? r.creadas + ' creadas · ' : '') + r.actualizadas + ' actualizadas' + (r.errores.length ? ' · ' + r.errores.length + ' con error' : '') +
-          (r.pendientes ? ' · faltan ' + r.pendientes + ': aprieta de nuevo' : ''), r.errores.length > 0);
-        R.apoderados();
-      }).catch(function (e) { ocupado(btn, false); fallo(e); });
+      api(fn, arg).then(function (r) { toast(msg || ('Listo: ' + r.familias + ' familias al día')); R.apoderados(); }).catch(function (e) { ocupado(btn, false); fallo(e); });
     }
-    $('#por-act').onclick = function () { actualizar($('#por-act')); };
+    $('#por-act').onclick = function () { actualizar($('#por-act'), 'api_portalActualizar'); };
     if ($('#por-diario')) $('#por-diario').onclick = function () {
       var b = $('#por-diario'); ocupado(b, true);
-      api('api_portalDiario', !d.diario).then(function () { toast(d.diario ? 'Actualización automática apagada' : 'Listo: se actualizarán cada noche'); R.apoderados(); }).catch(function (e) { ocupado(b, false); fallo(e); });
+      api('api_portalDiario', !d.diario).then(function () { toast(d.diario ? 'Actualización automática apagada' : 'Listo: se actualizará cada noche'); R.apoderados(); }).catch(function (e) { ocupado(b, false); fallo(e); });
     };
-    $$('[data-pone]').forEach(function (b) { b.onclick = function () { actualizar(b, d.familias[b.dataset.pone].email); }; });
+    $$('[data-pcopy]').forEach(function (b) { b.onclick = function () { copiar(d.familias[b.dataset.pcopy].enlace); }; });
+    $$('[data-pnew]').forEach(function (b) {
+      b.onclick = function () {
+        var f = d.familias[b.dataset.pnew];
+        if (!confirm('¿Cambiar el enlace de ' + (f.apoderado || f.alumnas.join(', ')) + '? El enlace anterior dejará de funcionar y tendrás que mandarle el nuevo.')) return;
+        actualizar(b, 'api_portalNuevoEnlace', f.clave, 'Enlace nuevo listo: mándaselo por WhatsApp');
+      };
+    });
     $$('[data-pwa]').forEach(function (b) {
       b.onclick = function () {
         var f = d.familias[b.dataset.pwa];
         var nombres = f.alumnas.length > 1 ? f.alumnas.slice(0, -1).join(', ') + ' y ' + f.alumnas[f.alumnas.length - 1] : f.alumnas[0];
-        enviarWa(f.telefono, 'Hola ' + ((f.apoderado || '').split(' ')[0] || '') + ', te comparto la planilla de Kraken Vóley donde puedes ver los pagos, la asistencia, los partidos y los datos de la ficha de ' + nombres + ':\n' + f.url +
-          '\n\nPara abrirla, entra con tu cuenta de Google ' + f.email + '. Es privada (solo tú la puedes ver) y se actualiza sola cada noche. Si ves algún dato incorrecto, avísame. Saludos, Cristian – Kraken Vóley 🏐');
+        enviarWa(f.telefono, 'Hola ' + ((f.apoderado || '').split(' ')[0] || '') + ', te comparto la página de Kraken Vóley donde puedes ver los pagos, la asistencia, los partidos y los datos de la ficha de ' + nombres + ':\n' + f.enlace +
+          '\n\nEs solo para tu familia, así que por favor no la reenvíes. Se actualiza sola cada noche. Si ves algún dato incorrecto, avísame. Saludos, Cristian – Kraken Vóley 🏐');
       };
     });
-    $$('[data-ficha]').forEach(function (b) { b.onclick = function () { fichaAlumna(b.dataset.ficha); }; });
   }).catch(fallo);
 };
 

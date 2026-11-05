@@ -43,12 +43,18 @@ Cristian no es técnico: háblale en español simple, sin jerga, y explícale lo
   (`mejorarTablas`); para que una celda ordene/filtre por un valor limpio, ponle `data-v`.
 - Estilo: colores del logo (morado `--kr-*`), fuentes Outfit + Inter. Responsive (menú lateral se oculta bajo 820px).
 
-## Portal de apoderados (`Portal.gs`, vista `R.apoderados`)
-- Una **planilla de Google por correo de apoderado** (`Email_Apoderado` de alumnas Activas; hermanas juntas), compartida
-  como lector **solo** con ese Gmail. Pestañas: Resumen, Pagos, Asistencia, Partidos, Ficha. Carpeta Drive `Kraken - Portal apoderados`.
-- Se rehace cada noche (activador `portalDiario`, se prende desde la vista Apoderados) o con "Actualizar planillas".
-- Nunca poner notas internas (Nota de mensualidad, Observaciones) ni datos de otras alumnas. Si la alumna se retira, se quita el acceso.
-- Se eligió así porque con Gmail normales una web "ejecutar como yo" no puede saber quién entró (`Session.getActiveUser()` viene vacío).
+## Portal de apoderados (`src/Portal.gs` + carpeta `portal/`)
+- **Página web aparte** ("Kraken Apoderados", proyecto de Apps Script propio en `portal/`, acceso *cualquiera con el enlace*).
+  Cada familia (hermanas juntas: mismo teléfono de apoderado, o mismo correo) tiene un **enlace personal** `...exec?f=<token>`.
+- La página de apoderados **nunca lee Kraken_BD**: solo la planilla `Kraken - Portal datos (no borrar)` (ID en `Config.Portal_Datos_ID`),
+  donde `Portal.gs` deja el resumen ya filtrado de cada familia (JSON). Registro privado de familias y tokens: hoja `Portal_Familias`.
+- Se rehace cada noche (activador `portalDiario`) o con "Actualizar ahora" en la vista Apoderados. "Nuevo enlace" cambia el token.
+  Alumna retirada → su familia sale de la planilla de datos y el enlace deja de abrir.
+- Nunca poner notas internas (Nota de mensualidad, Observaciones) ni datos de otras alumnas. Los comprobantes solo se marcan "recibido".
+- En `portal/` todas las funciones salvo `doGet` terminan en `_` (las públicas se podrían llamar desde el navegador).
+- `actualizar.ps1` publica primero `portal/` (carpeta `%USERPROFILE%\KrakenApoderados`, `clasp create` la primera vez) y escribe
+  `src/PortalUrl.gs` (`var PORTAL_URL`) antes de subir la web de gestión. `portal/Logo.html` es copia de `src/Logo.html`.
+- Vista previa de la página de apoderados: `tests/portal_previa.html` → Artifact https://claude.ai/artifact/RWW7HMhZdBffHeQ2Ptrmsi (republicar con la misma `url` tras cada cambio en portal/)
 
 ## Probar antes de subir
 ```

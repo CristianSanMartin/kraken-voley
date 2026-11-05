@@ -71,13 +71,60 @@ $vf = Join-Path $raiz.FullName 'VERSION'
 if (Test-Path $vf) { $version = (Get-Content $vf -Raw).Trim() }
 Ok "Version $version descargada"
 
-# --- 6. Publicar --------------------------------------------------------
+# --- 6. Pagina de apoderados (segunda web, se abre con el enlace personal de cada familia) ---
+$fecha = Get-Date -Format 'yyyy-MM-dd HH:mm'
+$portalUrl = ''
+$PCARPETA = Join-Path $env:USERPROFILE 'KrakenApoderados'
+if (Test-Path (Join-Path $raiz.FullName 'portal')) {
+  Paso 'Publicando la pagina de apoderados...'
+  New-Item -ItemType Directory -Force -Path $PCARPETA | Out-Null
+  Push-Location $PCARPETA
+  $okPortal = $true
+  $primeraVez = -not (Test-Path 'deploy_id.txt')
+  if (-not (Test-Path '.clasp.json')) {
+    if (Test-Path 'src') { Remove-Item 'src' -Recurse -Force }
+    New-Item -ItemType Directory -Force -Path 'src' | Out-Null
+    & clasp create --type webapp --title 'Kraken Apoderados' --rootDir src
+    if (($LASTEXITCODE -ne 0) -or (-not (Test-Path '.clasp.json'))) { Error2 'No se pudo crear la pagina de apoderados (la web de gestion se actualiza igual).'; $okPortal = $false }
+  }
+  if ($okPortal) {
+    if (Test-Path 'src') { Remove-Item 'src' -Recurse -Force }
+    Copy-Item (Join-Path $raiz.FullName 'portal') -Destination 'src' -Recurse
+    & clasp push -f
+    if ($LASTEXITCODE -ne 0) { Error2 'Fallo la subida de la pagina de apoderados (la web de gestion se actualiza igual).'; $okPortal = $false }
+  }
+  if ($okPortal) {
+    if (-not $primeraVez) {
+      $pdep = (Get-Content 'deploy_id.txt' -Raw).Trim()
+      & clasp deploy -i $pdep -d "v$version $fecha"
+      if ($LASTEXITCODE -ne 0) { Error2 'No se pudo actualizar la pagina de apoderados.'; $okPortal = $false }
+    } else {
+      $pout = & clasp deploy -d "v$version $fecha" 2>&1 | Out-String
+      Write-Host $pout
+      $pm = [regex]::Match($pout, 'AKfy[\w-]+')
+      if ($pm.Success) { $pdep = $pm.Value; Set-Content -Path 'deploy_id.txt' -Value $pdep -NoNewline }
+      else { Error2 'No encontre el ID de la pagina de apoderados en la respuesta.'; $okPortal = $false }
+    }
+  }
+  if ($okPortal) {
+    $portalUrl = "https://script.google.com/macros/s/$pdep/exec"
+    Set-Content -Path 'URL de la pagina de apoderados.txt' -Value $portalUrl -NoNewline
+    Ok 'Pagina de apoderados al dia'
+  }
+  Pop-Location
+}
+$pdepFile = Join-Path $PCARPETA 'deploy_id.txt'
+if ((-not $portalUrl) -and (Test-Path $pdepFile)) { $portalUrl = 'https://script.google.com/macros/s/' + (Get-Content $pdepFile -Raw).Trim() + '/exec' }
+if ($portalUrl) {
+  Set-Content -Path (Join-Path 'src' 'PortalUrl.gs') -Value ("// Lo escribe el actualizador: direccion de la pagina de apoderados.`r`nvar PORTAL_URL = '" + $portalUrl + "';") -Encoding ASCII
+}
+
+# --- 7. Publicar la web de gestion ----------------------------------------
 Paso 'Subiendo el codigo a Google...'
 & clasp push -f
 if ($LASTEXITCODE -ne 0) { Error2 'Fallo la subida. Copia el mensaje de arriba y enviaselo a Claude.'; exit 1 }
 
 Paso 'Actualizando la web...'
-$fecha = Get-Date -Format 'yyyy-MM-dd HH:mm'
 if (Test-Path 'deploy_id.txt') {
   $dep = (Get-Content 'deploy_id.txt' -Raw).Trim()
   & clasp deploy -i $dep -d "v$version $fecha"
@@ -97,3 +144,10 @@ Ok "La web quedo en la version $version"
 Write-Host "      $url" -ForegroundColor Green
 Write-Host "      (tambien guardada en $CARPETA\URL de la web.txt)"
 Start-Process $url
+if ($portalUrl -and $primeraVez) {
+  Write-Host ''
+  Write-Host '  ULTIMO PASO (solo esta vez): se abrira la pagina de apoderados.' -ForegroundColor Magenta
+  Write-Host '      Si Google pide permiso, elige tu cuenta, "Configuracion avanzada" > "Ir a Kraken Apoderados (no seguro)",'
+  Write-Host '      marca todas las casillas y aprieta "Permitir". Despues veras "Pagina de apoderados": ya esta lista.'
+  Start-Process $portalUrl
+}

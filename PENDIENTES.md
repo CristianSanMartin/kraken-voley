@@ -10,7 +10,6 @@
 
 ## Por construir (decide Cristian el orden)
 - [ ] **Mejorar la parte financiera** (prioridad). Paso 1 hecho: Mensualidades y Caja juntas en Finanzas.
-- [ ] Portal de apoderados: falta el Gmail de varias familias (se ve en la sección Apoderados).
 - [ ] Estadísticas por jugadora y partido (hoja Estadisticas ya creada, vacía).
 - [ ] Vincular el Formulario de Google a Kraken_BD y agregarle: teléfono, correo, autorización de imagen, talla.
 
@@ -23,3 +22,4 @@
 - v1.3.1: Alumnas y Finanzas conectadas: cambio de grupo/tarifa, retiro y reingreso se reflejan en las mensualidades desde el mes actual (los meses pasados no se tocan).
 - v1.3.2: la asistencia solo cuenta desde noviembre 2026 (`Config.Asistencia_Desde`, por defecto 2026-11); los registros antiguos quedan en la hoja.
 - v1.4: portal de apoderados = planilla de Google por familia (pagos, asistencia, partidos, ficha), compartida solo con su Gmail y actualizada cada noche.
+- v1.5: la página de apoderados pasa a ser una web propia (Kraken Apoderados) con enlace personal por familia; reemplaza las planillas por familia de v1.4.

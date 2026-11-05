@@ -79,49 +79,71 @@ const path = require('path');
   await ir('inscripciones'); await ir('mas'); await ir('config');
   await p.evaluate(() => { window.__gpt = ScriptApp.getProjectTriggers; ScriptApp.getProjectTriggers = () => { throw new Error('No cuentas con el permiso'); }; });
   await ir('apoderados');
-  paso('Apoderados sin permiso de activadores: igual carga y explica qué hacer', (await p.$$('[data-pone]')).length > 0 && /autorizar/.test(await p.textContent('#main')));
-  await p.evaluate(() => { ScriptApp.getProjectTriggers = window.__gpt; });
+  paso('Apoderados sin permiso de activadores: igual carga y explica qué hacer', /autorizar/.test(await p.textContent('#main')));
+  paso('Apoderados sin página publicada: lo avisa', /aún no está publicada/.test(await p.textContent('#main')));
+  await p.evaluate(() => { ScriptApp.getProjectTriggers = window.__gpt; window.PORTAL_URL = 'https://script.google.com/macros/s/PORTAL/exec'; });
   await ir('apoderados');
-  paso('Apoderados: lista de familias', (await p.$$('[data-pone]')).length > 0);
-  await p.click('#por-act'); await w(3000);
+  await p.click('#por-act'); await w(1500);
   {
     const r = await p.evaluate(() => {
-      const al = __SHEETS.Alumnas, h = al[0], iE = h.indexOf('Email_Apoderado'), iS = h.indexOf('Estado'), iN = h.indexOf('Nombre'), iId = h.indexOf('ID_Alumna');
-      const fam = {};
-      al.slice(1).filter(x => x[iS] === 'Activa' && x[iE]).forEach(x => { const c = String(x[iE]).toLowerCase(); (fam[c] = fam[c] || []).push(x[iN]); });
-      const files = Object.values(__FILES);
-      const otras = al.slice(1).map(x => x[iN]);
-      const malas = files.filter(f => {
-        const email = f.viewers[0], mias = fam[email] || [];
-        const pagos = f.tabs.find(t => t.nombre === 'Pagos').datos.slice(4).map(r => r[1]).filter(Boolean);
-        return f.viewers.length !== 1 || pagos.some(n => n !== 'Sin registros por ahora' && mias.indexOf(n) < 0);
-      });
-      const tabs = files[0] ? files[0].tabs.map(t => t.nombre).join(',') : '';
-      const notas = files.some(f => JSON.stringify(f.tabs).indexOf('Dijo que paga') >= 0);
-      return { nFam: Object.keys(fam).length, nFiles: files.length, malas: malas.length, tabs, notas, carpeta: files[0] && files[0].carpeta };
+      const al = __SHEETS.Alumnas, h = al[0], col = n => h.indexOf(n);
+      const activas = al.slice(1).filter(x => x[col('Estado')] === 'Activa');
+      const datos = Object.values(__FILES).find(f => f.nombre === 'Kraken - Portal datos (no borrar)');
+      const filas = datos.tabs[0].datos.slice(1);
+      const enlaces = [...document.querySelectorAll('#main a[title^="Ver la página"]')].map(a => a.href);
+      // cada alumna activa aparece en exactamente una familia; cada familia solo con sus hijas
+      const vistas = {};
+      filas.forEach(f => JSON.parse(f[2]).alumnas.forEach(a => { vistas[a.nombre] = (vistas[a.nombre] || 0) + 1; }));
+      const tel = x => String(x[col('Telefono_Apoderado')] || '').replace(/\D/g, '').slice(-8);
+      const mezcla = filas.some(f => { const as = JSON.parse(f[2]).alumnas.map(a => activas.find(x => x[col('Nombre')] === a.nombre)); return new Set(as.map(tel)).size > 1; });
+      const todo = JSON.stringify(filas);
+      return { nAct: activas.length, unaVez: activas.every(x => vistas[x[col('Nombre')]] === 1), mezcla, nFilas: filas.length, nEnlaces: enlaces.length,
+        enlaceOk: enlaces.every(u => /^https:\/\/script\.google\.com\/macros\/s\/PORTAL\/exec\?f=[a-z0-9]{40}$/.test(u)),
+        notas: /Dijo que paga|Mes sin registro de pagos/.test(todo), obs: activas.some(x => x[col('Observaciones')] && todo.indexOf(String(x[col('Observaciones')])) >= 0) };
     });
-    paso('Una planilla por familia, en la carpeta del portal', r.nFiles === r.nFam && r.nFam > 0 && r.carpeta === 'Kraken - Portal apoderados');
-    paso('Cada planilla compartida solo con su correo y solo con sus hijas', r.malas === 0);
-    paso('Pestañas Resumen, Pagos, Asistencia, Partidos y Ficha', r.tabs === 'Resumen,Pagos,Asistencia,Partidos,Ficha');
-    paso('Sin notas internas en las planillas', !r.notas);
-    paso('Tabla al día', (await p.$$eval('#main tbody .pill.ok', x => x.length)) === r.nFam);
+    paso('Una familia por apoderado: cada alumna activa en un solo enlace, hermanas juntas', r.unaVez && !r.mezcla && r.nFilas > 0);
+    paso('Enlaces personales con clave larga', r.nEnlaces === r.nFilas && r.enlaceOk);
+    paso('Sin notas internas ni observaciones en los datos de la página', !r.notas && !r.obs);
   }
+  {
+    const r = await p.evaluate(async () => {
+      const call = (f, ...a) => new Promise(res => google.script.run.withSuccessHandler(x => res(x))[f](...a));
+      const datos = () => Object.values(__FILES).find(f => f.nombre === 'Kraken - Portal datos (no borrar)').tabs[0].datos.slice(1).map(x => x[0]);
+      const est = (await call('api_portalEstado')).data, f = est.familias[0], antes = f.enlace.split('f=')[1];
+      await call('api_portalNuevoEnlace', f.clave);
+      const est2 = (await call('api_portalEstado')).data, despues = est2.familias.find(x => x.clave === f.clave).enlace.split('f=')[1];
+      const cambio = antes !== despues && datos().indexOf(antes) < 0 && datos().indexOf(despues) >= 0;
+      // retiro: el enlace deja de funcionar
+      const h = __SHEETS.Alumnas[0], iS = h.indexOf('Estado'), iN = h.indexOf('Nombre');
+      const filas = __SHEETS.Alumnas.filter((x, i) => i && f.alumnas.indexOf(x[iN]) >= 0 && x[iS] === 'Activa');
+      filas.forEach(x => { x[iS] = 'Retirada'; });
+      await call('api_portalActualizar');
+      const fuera = datos().indexOf(despues) < 0;
+      filas.forEach(x => { x[iS] = 'Activa'; });
+      await call('api_portalActualizar');
+      return { cambio, fuera, vuelve: datos().indexOf(despues) >= 0 };
+    });
+    paso('Nuevo enlace: el anterior deja de funcionar', r.cambio);
+    paso('Alumna retirada: su enlace deja de funcionar (y vuelve si regresa)', r.fuera && r.vuelve);
+  }
+  await ir('apoderados');
   await p.click('#por-diario'); await w(800);
   paso('Actualización de cada noche activada', await p.evaluate(() => __TRIGGERS.length === 1 && __TRIGGERS[0].getHandlerFunction() === 'portalDiario'));
   {
-    const ok = await p.evaluate(async () => {
-      const call = (f, ...a) => new Promise(res => google.script.run.withSuccessHandler(x => res(x))[f](...a));
-      const h = __SHEETS.Alumnas[0], iE = h.indexOf('Email_Apoderado'), iS = h.indexOf('Estado');
-      const fila = __SHEETS.Alumnas.find((x, i) => i && x[iS] === 'Activa' && x[iE] && __SHEETS.Alumnas.filter(y => y[iE] === x[iE] && y[iS] === 'Activa').length === 1);
-      const email = String(fila[iE]).toLowerCase(), f = Object.values(__FILES).find(z => z.viewers.indexOf(email) >= 0);
-      fila[iS] = 'Retirada';
-      await call('api_portalActualizar', '');
-      const quitado = f.viewers.indexOf(email) < 0;
-      fila[iS] = 'Activa';
-      await call('api_portalActualizar', email);
-      return quitado && f.viewers.indexOf(email) >= 0 && Object.values(__FILES).length === Object.values(__FILES).length;
-    });
-    paso('Alumna retirada: su familia pierde el acceso (y lo recupera al volver)', ok);
+    const q = await b.newPage({ viewport: { width: 390, height: 844 } });
+    const e2 = []; q.on('pageerror', e => e2.push(e.message));
+    await q.route(/fonts\.(googleapis|gstatic)/, r => r.abort());
+    await q.goto('file://' + path.join(__dirname, 'portal_previa.html')); await q.waitForTimeout(800);
+    const ok1 = !!(await q.$('.jug h2')) && /Mensualidad de/.test(await q.textContent('#app'));
+    let ok2 = true;
+    for (const t of ['pagos', 'asistencia', 'partidos', 'ficha']) { await q.click('[data-t="' + t + '"]'); await q.waitForTimeout(100); ok2 = ok2 && !!(await q.$('[data-t="' + t + '"].on')); }
+    const ancho = await q.evaluate(() => document.documentElement.scrollWidth);
+    await q.goto('about:blank'); await q.goto('file://' + path.join(__dirname, 'portal_previa.html') + '#sin'); await q.waitForTimeout(500);
+    const ok3 = /no funciona/.test(await q.textContent('#app'));
+    paso('Página de apoderados: muestra la jugadora y sus pestañas, sin desbordar en el celular', ok1 && ok2 && ancho <= 390 && e2.length === 0);
+    paso('Página de apoderados: enlace inválido muestra aviso', ok3);
+    if (e2.length) console.log(e2);
+    await q.close();
   }
   paso('Sin errores de JavaScript', errs.length === 0);
   if (errs.length) console.log(errs);
