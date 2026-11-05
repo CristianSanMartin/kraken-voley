@@ -74,6 +74,7 @@ Ok "Version $version descargada"
 # --- 6. Pagina de apoderados (segunda web, se abre con el enlace personal de cada familia) ---
 $fecha = Get-Date -Format 'yyyy-MM-dd HH:mm'
 $portalUrl = ''
+$portalEditor = ''
 $PCARPETA = Join-Path $env:USERPROFILE 'KrakenApoderados'
 if (Test-Path (Join-Path $raiz.FullName 'portal')) {
   Paso 'Publicando la pagina de apoderados...'
@@ -92,12 +93,17 @@ if (Test-Path (Join-Path $raiz.FullName 'portal')) {
   else {
     $cj = Get-Content '.clasp.json' -Raw | ConvertFrom-Json
     if ($cj.rootDir -ne 'src') { Set-Content -Path '.clasp.json' -Value ('{"scriptId":"' + $cj.scriptId + '","rootDir":"src"}') -Encoding ASCII }
+    $portalEditor = 'https://script.google.com/d/' + $cj.scriptId + '/edit'
+    Set-Content -Path 'Proyecto de la pagina de apoderados.txt' -Value $portalEditor -NoNewline
+    Write-Host "      Proyecto: $portalEditor"
   }
   if ($okPortal) {
     if (Test-Path 'src') { Remove-Item 'src' -Recurse -Force }
     Copy-Item (Join-Path $raiz.FullName 'portal') -Destination 'src' -Recurse
-    & clasp push -f
-    if ($LASTEXITCODE -ne 0) { Error2 'Fallo la subida de la pagina de apoderados (la web de gestion se actualiza igual).'; $okPortal = $false }
+    $ppush = & clasp push -f 2>&1 | Out-String
+    Write-Host $ppush
+    $pn = [regex]::Match($ppush, 'Pushed (\d+) file')
+    if ((-not $pn.Success) -or ([int]$pn.Groups[1].Value -lt 3)) { Error2 'No se subieron los archivos de la pagina de apoderados (la web de gestion se actualiza igual). Envia una foto de esta ventana a Claude.'; $okPortal = $false }
   }
   if ($okPortal) {
     if (-not $primeraVez) {
@@ -150,10 +156,16 @@ Ok "La web quedo en la version $version"
 Write-Host "      $url" -ForegroundColor Green
 Write-Host "      (tambien guardada en $CARPETA\URL de la web.txt)"
 Start-Process $url
-if ($portalUrl -and $primeraVez) {
+if ($portalUrl -and $portalEditor -and (-not (Test-Path (Join-Path $PCARPETA 'autorizada.txt')))) {
   Write-Host ''
-  Write-Host '  ULTIMO PASO (solo esta vez): se abrira la pagina de apoderados.' -ForegroundColor Magenta
-  Write-Host '      Si Google pide permiso, elige tu cuenta, "Configuracion avanzada" > "Ir a Kraken Apoderados (no seguro)",'
-  Write-Host '      marca todas las casillas y aprieta "Permitir". Despues veras "Pagina de apoderados": ya esta lista.'
-  Start-Process $portalUrl
+  Write-Host '  ULTIMO PASO (solo una vez): autorizar la pagina de apoderados.' -ForegroundColor Magenta
+  Write-Host '      Se abrira el proyecto "Kraken Apoderados". Ahi:'
+  Write-Host '      1) Haz clic en Apoderados.gs (a la izquierda).'
+  Write-Host '      2) Arriba elige la funcion doGet y aprieta Ejecutar.'
+  Write-Host '      3) Revisar permisos > tu cuenta > Configuracion avanzada > Ir a Kraken Apoderados (no seguro)'
+  Write-Host '         > marca todas las casillas > Permitir.'
+  Write-Host "      Proyecto: $portalEditor"
+  Start-Process $portalEditor
+  $r = Read-Host '      Cuando aparezca "Ejecucion completada", escribe OK y presiona ENTER (o solo ENTER para hacerlo despues)'
+  if ($r.Trim().ToUpper() -eq 'OK') { Set-Content -Path (Join-Path $PCARPETA 'autorizada.txt') -Value $fecha -NoNewline; Ok 'Pagina de apoderados autorizada' }
 }
