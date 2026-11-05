@@ -85,7 +85,13 @@ if (Test-Path (Join-Path $raiz.FullName 'portal')) {
     if (Test-Path 'src') { Remove-Item 'src' -Recurse -Force }
     New-Item -ItemType Directory -Force -Path 'src' | Out-Null
     & clasp create --type webapp --title 'Kraken Apoderados' --rootDir src
-    if (($LASTEXITCODE -ne 0) -or (-not (Test-Path '.clasp.json'))) { Error2 'No se pudo crear la pagina de apoderados (la web de gestion se actualiza igual).'; $okPortal = $false }
+  }
+  # clasp puede terminar con un aviso aunque haya creado el proyecto: lo que importa es que exista .clasp.json
+  if ((-not (Test-Path '.clasp.json')) -and (Test-Path (Join-Path 'src' '.clasp.json'))) { Move-Item (Join-Path 'src' '.clasp.json') '.clasp.json' -Force }
+  if (-not (Test-Path '.clasp.json')) { Error2 'No se pudo crear la pagina de apoderados (la web de gestion se actualiza igual).'; $okPortal = $false }
+  else {
+    $cj = Get-Content '.clasp.json' -Raw | ConvertFrom-Json
+    if ($cj.rootDir -ne 'src') { Set-Content -Path '.clasp.json' -Value ('{"scriptId":"' + $cj.scriptId + '","rootDir":"src"}') -Encoding ASCII }
   }
   if ($okPortal) {
     if (Test-Path 'src') { Remove-Item 'src' -Recurse -Force }
