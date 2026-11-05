@@ -33,12 +33,31 @@ function claveFamilia_(a) {
   return c ? 'MAIL-' + c : 'ALU-' + a.ID_Alumna;
 }
 
+/**
+ * Familias de alumnas Activas: quedan juntas las que comparten teléfono de apoderado, correo de apoderado
+ * o están marcadas como hermanas en la ficha (columna Hermanos, con IDs de alumna). La clave de la familia
+ * es la menor de las claves de sus integrantes, para que no cambie si se agrega otra hermana.
+ */
 function familias_(alumnas) {
+  var activas = alumnas.filter(function (a) { return a.Estado === 'Activa'; }), padre = {}, porId = {};
+  function raiz(x) { while (padre[x] !== x) { padre[x] = padre[padre[x]]; x = padre[x]; } return x; }
+  function unir(x, y) { x = raiz(x); y = raiz(y); if (x !== y) padre[x < y ? y : x] = x < y ? x : y; }
+  activas.forEach(function (a) { porId[a.ID_Alumna] = a; padre[a.ID_Alumna] = a.ID_Alumna; });
+  var vistos = {};
+  activas.forEach(function (a) {
+    var llaves = [];
+    var d = String(a.Telefono_Apoderado || '').replace(/\D/g, '');
+    if (d.length >= 8) llaves.push('TEL-' + d.slice(-8));
+    correos_(a.Email_Apoderado).forEach(function (c) { llaves.push('MAIL-' + c); });
+    llaves.forEach(function (k) { if (vistos[k]) unir(vistos[k], a.ID_Alumna); else vistos[k] = a.ID_Alumna; });
+    String(a.Hermanos || '').split(/[\s,;]+/).forEach(function (h) { if (porId[h]) unir(h, a.ID_Alumna); });
+  });
+  var grupos = {};
+  activas.forEach(function (a) { var r = raiz(a.ID_Alumna); (grupos[r] = grupos[r] || []).push(a); });
   var fam = {};
-  alumnas.filter(function (a) { return a.Estado === 'Activa'; }).forEach(function (a) {
-    var k = claveFamilia_(a);
-    fam[k] = fam[k] || { clave: k, alumnas: [] };
-    fam[k].alumnas.push(a);
+  Object.keys(grupos).forEach(function (r) {
+    var k = grupos[r].map(claveFamilia_).sort()[0];
+    fam[k] = { clave: k, alumnas: grupos[r] };
   });
   return fam;
 }
@@ -156,15 +175,23 @@ function portalActualizar_(nuevoEnlaceDe) {
     var reg = hojaFamilias_(), porClave = {};
     reg.rows.forEach(function (r) { porClave[r.Clave_Familia] = r; });
     Object.keys(fam).sort().forEach(function (k) {
-      var r = porClave[k], f = fam[k], token = r && r.Token && k !== nuevoEnlaceDe ? String(r.Token) : tokenNuevo_();
+      var r = porClave[k], f = fam[k];
+      if (!r) {
+        // familia recién juntada: hereda la fila (y el enlace) de una integrante que ya tenía uno
+        r = f.alumnas.map(claveFamilia_).map(function (c) { return porClave[c]; }).filter(function (x) { return x && x.Token && x.Estado !== 'Sin acceso'; })[0] || null;
+        if (r) { delete porClave[r.Clave_Familia]; porClave[k] = r; }
+      }
+      var token = r && r.Token && k !== nuevoEnlaceDe ? String(r.Token) : tokenNuevo_();
       var d = datosFamilia_(f, D), datos = { Clave_Familia: k, Apoderado: d.apoderado, Alumnas: f.alumnas.map(function (a) { return a.Nombre; }).join(', '),
         Token: token, Estado: 'Activo', Ultima_Actualizacion: ahora };
       if (r) actualizar_(HOJA_FAMILIAS, r._row, datos, reg.h); else { agregar_(HOJA_FAMILIAS, [datos]); res.nuevas++; }
       filasDatos.push([token, d.apoderado || datos.Alumnas, JSON.stringify(d), ahora]);
       res.familias++;
     });
+    var usadas = {};
+    Object.keys(porClave).forEach(function (k) { usadas[porClave[k]._row] = true; });
     reg.rows.forEach(function (r) {
-      if (!fam[r.Clave_Familia] && r.Estado !== 'Sin acceso') { actualizar_(HOJA_FAMILIAS, r._row, { Estado: 'Sin acceso', Ultima_Actualizacion: ahora }, reg.h); res.sinAcceso++; }
+      if (!usadas[r._row] && !fam[r.Clave_Familia] && r.Estado !== 'Sin acceso') { actualizar_(HOJA_FAMILIAS, r._row, { Estado: 'Sin acceso', Ultima_Actualizacion: ahora }, reg.h); res.sinAcceso++; }
     });
   });
   var sh = planillaDatosPortal_().getSheets()[0];
@@ -192,7 +219,7 @@ function api_portalEstado() {
     var filas = Object.keys(fam).map(function (k) {
       var r = porClave[k] || {}, as = fam[k].alumnas;
       return { clave: k, apoderado: as.map(function (a) { return a.Apoderado; }).filter(String)[0] || '',
-        alumnas: as.map(function (a) { return a.Nombre; }), telefono: as.map(function (a) { return a.Telefono_Apoderado; }).filter(String)[0] || '',
+        alumnas: as.map(function (a) { return a.Nombre; }), ids: as.map(function (a) { return a.ID_Alumna; }), telefono: as.map(function (a) { return a.Telefono_Apoderado; }).filter(String)[0] || '',
         enlace: r.Token && url ? url + '?f=' + r.Token : '', tieneToken: !!r.Token, actualizada: r.Ultima_Actualizacion || '' };
     }).sort(function (x, y) { return String(x.apoderado || x.alumnas[0]).localeCompare(String(y.apoderado || y.alumnas[0])); });
     return { familias: filas, portalUrl: url, diario: portalDiarioActivo_(),
@@ -202,6 +229,24 @@ function api_portalEstado() {
 
 function api_portalActualizar() {
   return run_(function () { return portalActualizar_(); });
+}
+
+/** Junta dos familias (ej. hermanas con distinto teléfono en la ficha): las marca como hermanas en la columna Hermanos. */
+function api_portalJuntar(claveA, claveB) {
+  return run_(function () {
+    var t = leer_('Alumnas'), fam = familias_(t.rows);
+    if (!fam[claveA] || !fam[claveB] || claveA === claveB) throw new Error('Elige dos familias distintas');
+    var todas = fam[claveA].alumnas.concat(fam[claveB].alumnas), ids = todas.map(function (a) { return a.ID_Alumna; });
+    conLock_(function () {
+      todas.forEach(function (a) {
+        var otros = String(a.Hermanos || '').split(/[\s,;]+/).filter(String);
+        ids.forEach(function (id) { if (id !== a.ID_Alumna && otros.indexOf(id) < 0) otros.push(id); });
+        actualizar_('Alumnas', a._row, { Hermanos: otros.join(', ') }, t.h);
+      });
+      log_('Juntar familias', 'Alumnas', ids.join(', '), 'Marcadas como hermanas para la página de apoderados');
+    });
+    return portalActualizar_();
+  });
 }
 
 /** Cambia el enlace de una familia (por si lo reenviaron): el anterior deja de funcionar. */

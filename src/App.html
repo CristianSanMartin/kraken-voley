@@ -736,14 +736,17 @@ R.apoderados = function () {
       ? 'La página se actualiza sola <b>cada noche</b>. Si haces un cambio y quieres que lo vean altiro, aprieta "Actualizar ahora".'
       : 'La actualización automática de cada noche está <b>apagada</b>: las familias solo verán los cambios cuando aprietes "Actualizar ahora".') +
       '</span><button class="btn sm right ' + (d.diario ? '' : 'pri') + '" id="por-diario">' + (d.diario ? 'Apagar' : 'Activar cada noche') + '</button></div>';
-    h += '<div class="card pad0"><div class="hd"><h3>Familias (' + d.familias.length + ')</h3><span class="small muted">Las hermanas con el mismo teléfono de apoderado comparten enlace</span></div><div class="tbl-wrap"><table><thead><tr><th>Apoderado</th><th>Alumnas</th><th class="hidem">Teléfono</th><th class="hidem">Actualizada</th><th></th></tr></thead><tbody>' +
+    h += '<div class="card pad0"><div class="hd"><h3>Familias (' + d.familias.length + ')</h3><span class="small muted">Las hermanas (mismo teléfono o correo de apoderado, o anotadas como hermanas) comparten enlace. Si no quedaron juntas, usa "Juntar"</span></div><div class="tbl-wrap"><table><thead><tr><th>Apoderado</th><th>Alumnas</th><th class="hidem">Teléfono</th><th class="hidem">Actualizada</th><th></th></tr></thead><tbody>' +
       (d.familias.length ? d.familias.map(function (f, i) {
-        return '<tr><td>' + esc(f.apoderado || '—') + '</td><td>' + esc(f.alumnas.join(', ')) + '</td><td class="hidem small">' + (f.telefono ? esc(f.telefono) : '<span style="color:var(--warn)">Sin teléfono</span>') + '</td>' +
+        return '<tr><td>' + esc(f.apoderado || '—') + '</td><td data-v="' + esc(f.alumnas.join(', ')) + '"><div class="row" style="gap:6px">' + f.alumnas.map(function (n, k) {
+            return '<button class="btn sm" data-pedit="' + esc(f.ids[k]) + '" title="Editar la ficha de ' + esc(n) + '">✎ ' + esc(n) + '</button>';
+          }).join('') + '</div></td><td class="hidem small">' + (f.telefono ? esc(f.telefono) : '<span style="color:var(--warn)">Sin teléfono</span>') + '</td>' +
           '<td class="hidem small nowrap">' + esc(f.actualizada || 'Aún no') + '</td><td class="nowrap" style="text-align:right">' +
           (f.enlace ? '<a class="btn sm" href="' + esc(f.enlace) + '" target="_blank" rel="noopener" title="Ver la página de esta familia">' + ic('ext') + '</a> ' +
             '<button class="btn sm" data-pcopy="' + i + '" title="Copiar el enlace">' + ic('copy') + '</button> ' +
             '<button class="btn sm wa" data-pwa="' + i + '" title="Enviar el enlace por WhatsApp">' + ic('wa') + '</button> ' +
-            '<button class="btn sm ghost" data-pnew="' + i + '" title="Cambiar el enlace (el anterior deja de funcionar)">Nuevo enlace</button>'
+            '<button class="btn sm ghost" data-pnew="' + i + '" title="Cambiar el enlace (el anterior deja de funcionar)">Nuevo enlace</button> ' +
+            '<button class="btn sm ghost" data-pjoin="' + i + '" title="Juntar con otra familia (hermanas con distinto teléfono)">Juntar</button>'
             : '<span class="small muted">' + (d.portalUrl ? 'Aprieta "Actualizar ahora"' : 'Falta publicar') + '</span>') + '</td></tr>';
       }).join('') : '<tr><td colspan="5" class="empty">No hay alumnas activas.</td></tr>') + '</tbody></table></div></div>';
     h += '<p class="small muted" style="margin-top:12px">El enlace no pide clave: cualquiera que lo tenga ve la página de esa familia. Si un apoderado lo reenvía o lo pierde, aprieta "Nuevo enlace" y mándale el nuevo. Cuando una alumna se retira, su enlace deja de funcionar en la siguiente actualización.</p>';
@@ -757,6 +760,44 @@ R.apoderados = function () {
       var b = $('#por-diario'); ocupado(b, true);
       api('api_portalDiario', !d.diario).then(function () { toast(d.diario ? 'Actualización automática apagada' : 'Listo: se actualizará cada noche'); R.apoderados(); }).catch(function (e) { ocupado(b, false); fallo(e); });
     };
+    $$('[data-pjoin]').forEach(function (b) {
+      b.onclick = function () {
+        var f = d.familias[b.dataset.pjoin], nom = function (x) { return (x.apoderado ? x.apoderado + ' — ' : '') + x.alumnas.join(', '); };
+        var otras = d.familias.filter(function (x) { return x.clave !== f.clave; });
+        var m = modal('Juntar familias', '<p style="margin-top:0">Junta a <b>' + esc(f.alumnas.join(', ')) + '</b> con otra familia, por ejemplo hermanas que tienen distinto teléfono en la ficha. ' +
+          'Quedarán con <b>un solo enlace</b> y el apoderado verá a todas sus hijas.</p>' +
+          '<div class="search" style="margin-bottom:10px">' + ic('search') + '<input class="in" id="pj-q" placeholder="Buscar alumna o apoderado…"></div>' +
+          '<select class="in" id="pj-sel" size="8" style="width:100%">' + otras.map(function (x) { return '<option value="' + esc(x.clave) + '">' + esc(nom(x)) + '</option>'; }).join('') + '</select>' +
+          '<p class="small muted">Se anotan como hermanas en sus fichas (campo Hermanos). Si una de las dos familias ya tenía enlace, se mantiene ese; si las dos tenían, la otra deja de funcionar.</p>',
+          '<button class="btn" data-c>Cancelar</button><button class="btn pri" id="pj-ok">Juntar</button>');
+        m.querySelector('[data-c]').onclick = cerrarModal;
+        m.querySelector('#pj-q').oninput = function (e) {
+          var q = norm(e.target.value);
+          Array.prototype.forEach.call(m.querySelectorAll('#pj-sel option'), function (o) { o.hidden = q && norm(o.textContent).indexOf(q) < 0; });
+        };
+        m.querySelector('#pj-ok').onclick = function (e) {
+          var otra = m.querySelector('#pj-sel').value;
+          if (!otra) return toast('Elige la otra familia', true);
+          ocupado(e.target, true);
+          api('api_portalJuntar', f.clave, otra).then(function () { cerrarModal(); toast('Familias juntas: ahora tienen un solo enlace'); S.cache.alumnas = null; R.apoderados(); })
+            .catch(function (err) { ocupado(e.target, false); fallo(err); });
+        };
+      };
+    });
+    // Editar la ficha desde aquí: al guardar, la página de la familia se actualiza altiro.
+    $$('[data-pedit]').forEach(function (b) {
+      b.onclick = function () {
+        ocupado(b, true);
+        obtenerAlumnas(true).then(function (lista) {
+          ocupado(b, false);
+          var a = lista.filter(function (x) { return x.ID_Alumna === b.dataset.pedit; })[0];
+          if (!a) return toast('No encontré la ficha', true);
+          editarAlumna(a, function () {
+            api('api_portalActualizar').then(function () { toast('Ficha guardada y página de la familia al día'); R.apoderados(); }, function () { R.apoderados(); });
+          });
+        }).catch(function (e) { ocupado(b, false); fallo(e); });
+      };
+    });
     $$('[data-pcopy]').forEach(function (b) { b.onclick = function () { copiar(d.familias[b.dataset.pcopy].enlace); }; });
     $$('[data-pnew]').forEach(function (b) {
       b.onclick = function () {

@@ -23,3 +23,4 @@
 - v1.3.2: la asistencia solo cuenta desde noviembre 2026 (`Config.Asistencia_Desde`, por defecto 2026-11); los registros antiguos quedan en la hoja.
 - v1.4: portal de apoderados = planilla de Google por familia (pagos, asistencia, partidos, ficha), compartida solo con su Gmail y actualizada cada noche.
 - v1.5: la página de apoderados pasa a ser una web propia (Kraken Apoderados) con enlace personal por familia; reemplaza las planillas por familia de v1.4.
+- v1.5.2: en Apoderados, editar la ficha de cada alumna (la página de la familia queda al día) y juntar familias; hermanas se agrupan también por correo o por el campo Hermanos.

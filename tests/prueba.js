@@ -95,7 +95,10 @@ const path = require('path');
       const vistas = {};
       filas.forEach(f => JSON.parse(f[2]).alumnas.forEach(a => { vistas[a.nombre] = (vistas[a.nombre] || 0) + 1; }));
       const tel = x => String(x[col('Telefono_Apoderado')] || '').replace(/\D/g, '').slice(-8);
-      const mezcla = filas.some(f => { const as = JSON.parse(f[2]).alumnas.map(a => activas.find(x => x[col('Nombre')] === a.nombre)); return new Set(as.map(tel)).size > 1; });
+      const famDe = {}; filas.forEach((f, i) => JSON.parse(f[2]).alumnas.forEach(a => { famDe[a.nombre] = i; }));
+      const porTel = {}; activas.forEach(x => { const t = tel(x); if (t.length >= 8) (porTel[t] = porTel[t] || new Set()).add(famDe[x[col('Nombre')]]); });
+      const hermanasSeparadas = activas.some(x => String(x[col('Hermanos')] || '').split(/[\s,;]+/).some(id => { const y = activas.find(z => z[col('ID_Alumna')] === id); return y && famDe[y[col('Nombre')]] !== famDe[x[col('Nombre')]]; }));
+      const mezcla = Object.values(porTel).some(s => s.size > 1) || hermanasSeparadas;
       const todo = JSON.stringify(filas);
       return { nAct: activas.length, unaVez: activas.every(x => vistas[x[col('Nombre')]] === 1), mezcla, nFilas: filas.length, nEnlaces: enlaces.length,
         enlaceOk: enlaces.every(u => /^https:\/\/script\.google\.com\/macros\/s\/PORTAL\/exec\?f=[a-z0-9]{40}$/.test(u)),
@@ -125,6 +128,28 @@ const path = require('path');
     });
     paso('Nuevo enlace: el anterior deja de funcionar', r.cambio);
     paso('Alumna retirada: su enlace deja de funcionar (y vuelve si regresa)', r.fuera && r.vuelve);
+  }
+  {
+    await ir('apoderados');
+    await p.click('[data-pedit]'); await w(600);
+    const abierto = !!(await p.$('#f-alu'));
+    await p.fill('#f-alu [name=Talla]', 'M'); await p.click('#alu-save'); await w(2000);
+    const ok = await p.evaluate(() => { const d = Object.values(__FILES).find(f => f.nombre === 'Kraken - Portal datos (no borrar)').tabs[0].datos.slice(1);
+      return d.some(x => JSON.parse(x[2]).alumnas.some(a => a.ficha.some(c => c[0] === 'Talla' && c[1] === 'M'))); });
+    paso('Apoderados: editar la ficha de una alumna y la página de la familia queda al día', abierto && ok);
+  }
+  {
+    const r = await p.evaluate(async () => {
+      const call = (f, ...a) => new Promise(res => google.script.run.withSuccessHandler(x => res(x))[f](...a));
+      const fs = (await call('api_portalEstado')).data.familias.filter(f => f.enlace && f.alumnas.length === 1);
+      const a = fs[0], b = fs[1], tokA = a.enlace.split('f=')[1];
+      const res = await call('api_portalJuntar', a.clave, b.clave);
+      const est = (await call('api_portalEstado')).data;
+      const junta = est.familias.filter(f => f.alumnas.indexOf(a.alumnas[0]) >= 0 && f.alumnas.indexOf(b.alumnas[0]) >= 0);
+      return { ok: res.ok, junta: junta.length === 1, total: est.familias.length === (await call('api_portalEstado')).data.familias.length,
+        enlace: junta[0] && [tokA, b.enlace.split('f=')[1]].indexOf(junta[0].enlace.split('f=')[1]) >= 0 };
+    });
+    paso('Juntar familias: quedan en una sola, con uno de los enlaces que ya tenían', r.ok && r.junta && r.enlace);
   }
   await ir('apoderados');
   await p.click('#por-diario'); await w(800);
