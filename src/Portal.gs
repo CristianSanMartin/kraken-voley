@@ -214,13 +214,13 @@ function portalDiarioActivo_() {
 
 function api_portalEstado() {
   return run_(function () {
-    var cfg = config_(), url = portalUrl_(cfg), fam = familias_(leer_('Alumnas').rows), reg = hojaFamilias_(), porClave = {};
+    var cfg = config_(), url = portalUrl_(cfg), datosId = String(cfg.Portal_Datos_ID || ''), fam = familias_(leer_('Alumnas').rows), reg = hojaFamilias_(), porClave = {};
     reg.rows.forEach(function (r) { porClave[r.Clave_Familia] = r; });
     var filas = Object.keys(fam).map(function (k) {
       var r = porClave[k] || {}, as = fam[k].alumnas;
       return { clave: k, apoderado: as.map(function (a) { return a.Apoderado; }).filter(String)[0] || '',
         alumnas: as.map(function (a) { return a.Nombre; }), ids: as.map(function (a) { return a.ID_Alumna; }), telefono: as.map(function (a) { return a.Telefono_Apoderado; }).filter(String)[0] || '',
-        enlace: r.Token && url ? url + '?f=' + r.Token : '', tieneToken: !!r.Token, actualizada: r.Ultima_Actualizacion || '' };
+        enlace: r.Token && url && datosId ? url + '?d=' + datosId + '&f=' + r.Token : '', tieneToken: !!r.Token, actualizada: r.Ultima_Actualizacion || '' };
     }).sort(function (x, y) { return String(x.apoderado || x.alumnas[0]).localeCompare(String(y.apoderado || y.alumnas[0])); });
     return { familias: filas, portalUrl: url, diario: portalDiarioActivo_(),
       sinTelefono: filas.filter(function (f) { return !f.telefono; }).length };

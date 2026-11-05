@@ -189,7 +189,7 @@ var PANEL = {
 if (DATOS.ok) pintar();
 else if (DATOS.motivo === 'inicio') pantallaSola('Página de apoderados', 'Para entrar, abre el enlace personal que te envió Cristian por WhatsApp.');
 else if (DATOS.motivo === 'enlace') pantallaSola('Este enlace no funciona', 'Puede que haya cambiado. Pídele a Cristian tu enlace nuevo por WhatsApp.');
-else pantallaSola('No pudimos cargar la página', 'Intenta de nuevo en unos minutos.');
+else pantallaSola('No pudimos cargar la página', 'Intenta de nuevo en unos minutos.' + (DATOS.detalle ? '<br><span class="small">Detalle para Cristian: ' + esc(DATOS.detalle) + '</span>' : ''));
 </script>
 </body>
 </html>

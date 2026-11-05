@@ -10,14 +10,14 @@
 var NOMBRE_DATOS = 'Kraken - Portal datos (no borrar)';
 
 function doGet(e) {
-  var token = String((e && e.parameter && e.parameter.f) || '').trim(), res;
+  var prm = (e && e.parameter) || {}, token = String(prm.f || '').trim(), datosId = String(prm.d || '').trim(), res;
   if (!token) res = { ok: false, motivo: 'inicio' };
-  else if (!/^[A-Za-z0-9]{24,64}$/.test(token)) res = { ok: false, motivo: 'enlace' };
+  else if (!/^[A-Za-z0-9]{24,64}$/.test(token) || !/^[A-Za-z0-9_-]{25,80}$/.test(datosId)) res = { ok: false, motivo: 'enlace' };
   else {
     try {
-      var fam = buscarFamilia_(token);
+      var fam = buscarFamilia_(datosId, token);
       res = fam ? { ok: true, familia: fam } : { ok: false, motivo: 'enlace' };
-    } catch (err) { res = { ok: false, motivo: 'error' }; }
+    } catch (err) { console.error(err); res = { ok: false, motivo: 'error', detalle: String(err && err.message || err).slice(0, 200) }; }
   }
   var t = HtmlService.createTemplateFromFile('Pagina');
   t.datos = JSON.stringify(res).replace(/</g, '\\u003c').replace(/\u2028|\u2029/g, ' ');
@@ -28,27 +28,19 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
 }
 
-/** Busca la familia por su clave. Lee la planilla de datos (se guarda su ID después de encontrarla la primera vez). */
-function buscarFamilia_(token) {
+/**
+ * Busca la familia por su clave en la planilla de datos. Solo acepta la planilla que se llama exactamente
+ * "Kraken - Portal datos (no borrar)": este script corre como Cristian, así que no abre ninguna otra aunque
+ * alguien cambie la dirección del enlace.
+ */
+function buscarFamilia_(datosId, token) {
   var cache = CacheService.getScriptCache(), k = 'f_' + token, c = cache.get(k);
   if (c) return c === '-' ? null : JSON.parse(c);
-  var v = hojaDatos_().getDataRange().getValues(), fam = null;
+  var ss;
+  try { ss = SpreadsheetApp.openById(datosId); } catch (e) { return null; }
+  if (ss.getName() !== NOMBRE_DATOS) return null;
+  var v = ss.getSheets()[0].getDataRange().getValues(), fam = null;
   for (var i = 1; i < v.length; i++) { if (String(v[i][0]) === token) { fam = JSON.parse(String(v[i][2])); break; } }
   try { cache.put(k, fam ? JSON.stringify(fam) : '-', 300); } catch (e) { /* muy grande para el caché: no importa */ }
   return fam;
-}
-
-/** La planilla de datos debe ser del mismo dueño que este script (nadie puede "colar" otra con el mismo nombre). */
-function hojaDatos_() {
-  var props = PropertiesService.getScriptProperties(), id = props.getProperty('DATOS_ID');
-  if (id) { try { return SpreadsheetApp.openById(id).getSheets()[0]; } catch (e) { props.deleteProperty('DATOS_ID'); } }
-  var yo = String(Session.getEffectiveUser().getEmail()).toLowerCase(), it = DriveApp.getFilesByName(NOMBRE_DATOS);
-  while (it.hasNext()) {
-    var f = it.next(), dueno = f.getOwner();
-    if (dueno && String(dueno.getEmail()).toLowerCase() === yo) {
-      props.setProperty('DATOS_ID', f.getId());
-      return SpreadsheetApp.openById(f.getId()).getSheets()[0];
-    }
-  }
-  throw new Error('No encontré la planilla de datos');
 }

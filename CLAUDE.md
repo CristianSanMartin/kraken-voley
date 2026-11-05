@@ -45,8 +45,8 @@ Cristian no es técnico: háblale en español simple, sin jerga, y explícale lo
 
 ## Portal de apoderados (`src/Portal.gs` + carpeta `portal/`)
 - **Página web aparte** ("Kraken Apoderados", proyecto de Apps Script propio en `portal/`, acceso *cualquiera con el enlace*).
-  Cada familia (hermanas juntas: mismo teléfono de apoderado, o mismo correo) tiene un **enlace personal** `...exec?f=<token>`.
-- La página de apoderados **nunca lee Kraken_BD**: solo la planilla `Kraken - Portal datos (no borrar)` (ID en `Config.Portal_Datos_ID`),
+  Cada familia (hermanas juntas: mismo teléfono de apoderado, o mismo correo) tiene un **enlace personal** `...exec?d=<ID planilla de datos>&f=<token>`.
+- La página de apoderados **nunca lee Kraken_BD**: solo la planilla `Kraken - Portal datos (no borrar)` (ID en `Config.Portal_Datos_ID`, viaja en el enlace; la página comprueba el nombre y no usa Drive),
   donde `Portal.gs` deja el resumen ya filtrado de cada familia (JSON). Registro privado de familias y tokens: hoja `Portal_Familias`.
 - Se rehace cada noche (activador `portalDiario`) o con "Actualizar ahora" en la vista Apoderados. "Nuevo enlace" cambia el token.
   Alumna retirada → su familia sale de la planilla de datos y el enlace deja de abrir.

@@ -101,7 +101,7 @@ const path = require('path');
       const mezcla = Object.values(porTel).some(s => s.size > 1) || hermanasSeparadas;
       const todo = JSON.stringify(filas);
       return { nAct: activas.length, unaVez: activas.every(x => vistas[x[col('Nombre')]] === 1), mezcla, nFilas: filas.length, nEnlaces: enlaces.length,
-        enlaceOk: enlaces.every(u => /^https:\/\/script\.google\.com\/macros\/s\/PORTAL\/exec\?f=[a-z0-9]{40}$/.test(u)),
+        enlaceOk: enlaces.every(u => /^https:\/\/script\.google\.com\/macros\/s\/PORTAL\/exec\?d=SS\d+&f=[a-z0-9]{40}$/.test(u)),
         notas: /Dijo que paga|Mes sin registro de pagos/.test(todo), obs: activas.some(x => x[col('Observaciones')] && todo.indexOf(String(x[col('Observaciones')])) >= 0) };
     });
     paso('Una familia por apoderado: cada alumna activa en un solo enlace, hermanas juntas', r.unaVez && !r.mezcla && r.nFilas > 0);
@@ -170,6 +170,8 @@ const path = require('path');
     if (e2.length) console.log(e2);
     await q.close();
   }
+  { let ok = true; try { new Function(require('fs').readFileSync(path.join(__dirname, '..', 'portal', 'Apoderados.gs'), 'utf8')); } catch (e) { ok = false; console.log(e.message); }
+    paso('Código de la página de apoderados sin errores de sintaxis', ok); }
   paso('Sin errores de JavaScript', errs.length === 0);
   if (errs.length) console.log(errs);
   await b.close();
