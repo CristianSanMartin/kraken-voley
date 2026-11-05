@@ -111,7 +111,7 @@ if (Test-Path (Join-Path $raiz.FullName 'portal')) {
     $ppush = & clasp push -f 2>&1 | Out-String
     Write-Host $ppush
     $pn = [regex]::Match($ppush, 'Pushed (\d+) file')
-    if ((-not $pn.Success) -or ([int]$pn.Groups[1].Value -lt 3)) { Error2 'No se subieron los archivos de la pagina de apoderados (la web de gestion se actualiza igual). Envia una foto de esta ventana a Claude.'; $okPortal = $false }
+    if ((-not $pn.Success) -or ([int]$pn.Groups[1].Value -lt 3) -or ($ppush -match 'Push failed|GaxiosError|Syntax error')) { Error2 'No se subieron los archivos de la pagina de apoderados (la web de gestion se actualiza igual). Envia una foto de esta ventana a Claude.'; $okPortal = $false }
   }
   if ($okPortal) {
     if (-not $primeraVez) {

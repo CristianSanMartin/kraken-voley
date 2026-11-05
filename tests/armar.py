@@ -7,6 +7,10 @@ import json, re, pathlib
 RAIZ = pathlib.Path(__file__).resolve().parent.parent
 SRC, T = RAIZ / 'src', RAIZ / 'tests'
 datos = json.loads((T / 'datos_ejemplo.json').read_text())
+# Google rechaza el código con saltos de línea invisibles (U+2028/U+2029) dentro: se escriben como \\u2028.
+for f in list((RAIZ / 'src').iterdir()) + list((RAIZ / 'portal').iterdir()):
+    if '\u2028' in f.read_text() or '\u2029' in f.read_text():
+        raise SystemExit(f'ERROR: {f.name} tiene un salto de línea invisible (U+2028/U+2029)')
 mock = (T / 'mock.js').read_text()
 gs = '\n'.join((SRC / f).read_text() for f in ['Code.gs', 'Db.gs', 'Api.gs', 'Portal.gs'])
 html = (SRC / 'Index.html').read_text()

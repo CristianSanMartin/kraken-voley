@@ -20,7 +20,7 @@ function doGet(e) {
     } catch (err) { res = { ok: false, motivo: 'error' }; }
   }
   var t = HtmlService.createTemplateFromFile('Pagina');
-  t.datos = JSON.stringify(res).replace(/</g, '\\u003c').replace(/ | /g, ' ');
+  t.datos = JSON.stringify(res).replace(/</g, '\\u003c').replace(/\u2028|\u2029/g, ' ');
   t.logo = HtmlService.createHtmlOutputFromFile('Logo').getContent();
   return t.evaluate()
     .setTitle('Kraken Vóley · Apoderados')
