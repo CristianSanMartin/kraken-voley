@@ -81,15 +81,23 @@ if (Test-Path (Join-Path $raiz.FullName 'portal')) {
   New-Item -ItemType Directory -Force -Path $PCARPETA | Out-Null
   Push-Location $PCARPETA
   $okPortal = $true
+  # v2: el proyecto ya no se crea solo (clasp create fallaba); se usa el ID del proyecto "Kraken Apoderados" que deja Cristian.
+  if (-not (Test-Path 'proyecto_v2.txt')) {
+    foreach ($f in @('.clasp.json', 'deploy_id.txt', 'autorizada.txt', 'URL de la pagina de apoderados.txt', 'Proyecto de la pagina de apoderados.txt')) { if (Test-Path $f) { Remove-Item $f -Force } }
+    Set-Content -Path 'proyecto_v2.txt' -Value $fecha -NoNewline
+  }
   $primeraVez = -not (Test-Path 'deploy_id.txt')
   if (-not (Test-Path '.clasp.json')) {
-    if (Test-Path 'src') { Remove-Item 'src' -Recurse -Force }
-    New-Item -ItemType Directory -Force -Path 'src' | Out-Null
-    & clasp create --type webapp --title 'Kraken Apoderados' --rootDir src
+    Write-Host ''
+    Write-Host '      Necesito el ID del proyecto "Kraken Apoderados" (solo esta vez):' -ForegroundColor Magenta
+    Write-Host '      1) Entra a https://script.google.com y abre "Kraken Apoderados" (si no existe: "Nuevo proyecto" y ponle ese nombre).'
+    Write-Host '      2) A la izquierda, el engranaje "Configuracion del proyecto" > copia el "ID de secuencia de comandos".'
+    Start-Process 'https://script.google.com/home'
+    $pid2 = (Read-Host '      Pega el ID aqui (o solo ENTER para hacerlo despues)').Trim()
+    if ($pid2 -match '^[\w-]{20,}$') { Set-Content -Path '.clasp.json' -Value ('{"scriptId":"' + $pid2 + '","rootDir":"src"}') -Encoding ASCII }
+    elseif ($pid2) { Error2 'Ese ID no parece valido.' }
   }
-  # clasp puede terminar con un aviso aunque haya creado el proyecto: lo que importa es que exista .clasp.json
-  if ((-not (Test-Path '.clasp.json')) -and (Test-Path (Join-Path 'src' '.clasp.json'))) { Move-Item (Join-Path 'src' '.clasp.json') '.clasp.json' -Force }
-  if (-not (Test-Path '.clasp.json')) { Error2 'No se pudo crear la pagina de apoderados (la web de gestion se actualiza igual).'; $okPortal = $false }
+  if (-not (Test-Path '.clasp.json')) { Error2 'Falta el ID de la pagina de apoderados: no se publico (la web de gestion se actualiza igual).'; $okPortal = $false }
   else {
     $cj = Get-Content '.clasp.json' -Raw | ConvertFrom-Json
     if ($cj.rootDir -ne 'src') { Set-Content -Path '.clasp.json' -Value ('{"scriptId":"' + $cj.scriptId + '","rootDir":"src"}') -Encoding ASCII }

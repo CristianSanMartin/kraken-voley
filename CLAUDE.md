@@ -52,7 +52,7 @@ Cristian no es técnico: háblale en español simple, sin jerga, y explícale lo
   Alumna retirada → su familia sale de la planilla de datos y el enlace deja de abrir.
 - Nunca poner notas internas (Nota de mensualidad, Observaciones) ni datos de otras alumnas. Los comprobantes solo se marcan "recibido".
 - En `portal/` todas las funciones salvo `doGet` terminan en `_` (las públicas se podrían llamar desde el navegador).
-- `actualizar.ps1` publica primero `portal/` (carpeta `%USERPROFILE%\KrakenApoderados`, `clasp create` la primera vez) y escribe
+- `actualizar.ps1` publica primero `portal/` (carpeta `%USERPROFILE%\KrakenApoderados`; la primera vez pide el ID del proyecto "Kraken Apoderados", ya no usa `clasp create`) y escribe
   `src/PortalUrl.gs` (`var PORTAL_URL`) antes de subir la web de gestión. `portal/Logo.html` es copia de `src/Logo.html`.
 - Vista previa de la página de apoderados: `tests/portal_previa.html` → Artifact https://claude.ai/artifact/RWW7HMhZdBffHeQ2Ptrmsi (republicar con la misma `url` tras cada cambio en portal/)
 
